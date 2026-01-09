@@ -250,10 +250,10 @@ index 000000000..3a96f5931
 + 
 +    {0x51, 2, {0x07, 0xFF}},
 +
-+    {0x11, 1, {0x00}},
++    {0x11, 0, {0x00}},
 +    {REGFLAG_DELAY, REGFLAG_DELAY, {120} },
 +
-+    {0x29, 1, {0x00}},
++    {0x29, 0, {0x00}},
 +    {REGFLAG_DELAY, REGFLAG_DELAY, {80} },
 +
 +    {REGFLAG_END_OF_TABLE, REGFLAG_END_OF_TABLE, {} }
