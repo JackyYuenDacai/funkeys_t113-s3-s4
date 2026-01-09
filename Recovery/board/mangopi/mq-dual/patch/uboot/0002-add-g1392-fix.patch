@@ -1,0 +1,51 @@
+From f602e1cb3f2dc1c13105c873bacde15c4ea5696d Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Mon, 5 Jan 2026 21:31:16 +0800
+Subject: [PATCH] add-g1392-fix
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 4 ++--
+ drivers/video/sunxi/disp2/disp/lcd/g1392.h | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 0df961a..8ded036 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -75,7 +75,7 @@ static void lcd_panel_exit(u32 sel);
+ 
+ #define panel_reset(sel, val) sunxi_lcd_gpio_set_value(sel, 0, val)
+ 
+-static void lcd_cfg_panel_info(struct panel_extend_para *info)
++static void lcd_cfg_panel_info(panel_extend_para *info)
+ {
+ 	u32 i = 0, j = 0;
+ 	u32 items;
+@@ -344,7 +344,7 @@ static s32 lcd_user_defined_func(u32 sel, u32 para1, u32 para2, u32 para3)
+ 	return 0;
+ }
+ 
+-struct __lcd_panel g1392_panel = {
++__lcd_panel_t g1392_panel = {
+ 	/* panel driver name, must mach the name of
+ 	 * lcd_drv_name in sys_config.fex
+ 	 */
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.h b/drivers/video/sunxi/disp2/disp/lcd/g1392.h
+index a6d817b..9f673d7 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.h
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.h
+@@ -14,8 +14,8 @@
+ 
+ #include "panels.h"
+ 
+-extern struct __lcd_panel g1392_panel;
++extern __lcd_panel_t g1392_panel;
+ 
+-extern s32 bsp_disp_get_panel_info(u32 screen_id, struct disp_panel_para *info);
++extern s32 bsp_disp_get_panel_info(u32 screen_id, disp_panel_para *info);
+ 
+ #endif /*End of file*/
+-- 
+2.34.1
+

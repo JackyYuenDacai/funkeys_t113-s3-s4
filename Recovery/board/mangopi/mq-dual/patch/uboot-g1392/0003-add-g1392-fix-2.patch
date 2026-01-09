@@ -1,0 +1,55 @@
+From a08149c1e08ddb3b96d9656c58b8c5a165cb8054 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Mon, 5 Jan 2026 23:14:47 +0800
+Subject: [PATCH] add-g1392-fix-2
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 8ded036..6e6ea38 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -64,7 +64,7 @@
+  * lcd_gpio_0          = port:PB06<1><0><default><1>
+ */
+ #include "g1392.h"
+-
++#include <common.h>
+ static void lcd_power_on(u32 sel);
+ static void lcd_power_off(u32 sel);
+ static void lcd_bl_open(u32 sel);
+@@ -124,10 +124,12 @@ static void lcd_cfg_panel_info(panel_extend_para *info)
+ 
+ static s32 lcd_open_flow(u32 sel)
+ {
++        tick_printf("%s:start\n", __func__);
+ 	LCD_OPEN_FUNC(sel, lcd_power_on, 0);
+ 	LCD_OPEN_FUNC(sel, lcd_panel_init, 10);
+ 	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 10);
+ 	LCD_OPEN_FUNC(sel, lcd_bl_open, 0);
++        tick_printf("%s:end\n", __func__);
+ 	return 0;
+ }
+ 
+@@ -143,6 +145,7 @@ static s32 lcd_close_flow(u32 sel)
+ 
+ static void lcd_power_on(u32 sel)
+ {
++    tick_printf("%s:start\n", __func__);
+ 	sunxi_lcd_pin_cfg(sel, 1);
+ 	sunxi_lcd_power_enable(sel, 0);
+ 	// sunxi_lcd_power_enable(sel, 1);
+@@ -155,6 +158,7 @@ static void lcd_power_on(u32 sel)
+ 	sunxi_lcd_delay_ms(1);
+ 	panel_reset(sel, 1);
+ 	sunxi_lcd_delay_ms(10);
++    tick_printf("%s:end\n", __func__);
+ }
+ 
+ static void lcd_power_off(u32 sel)
+-- 
+2.34.1
+

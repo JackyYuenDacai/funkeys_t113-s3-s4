@@ -1,0 +1,51 @@
+From 0fb0a0d539b97d2cbe95d7dc46767e7c07950a25 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 01:46:32 +0800
+Subject: [PATCH] add-g1392-fix-6
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/video_hal.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/sunxi/bootGUI/video_hal.c b/drivers/video/sunxi/bootGUI/video_hal.c
+index 297ce9b..084f9f0 100644
+--- a/drivers/video/sunxi/bootGUI/video_hal.c
++++ b/drivers/video/sunxi/bootGUI/video_hal.c
+@@ -65,7 +65,7 @@ int hal_switch_device(disp_device_t *device, unsigned int fb_id)
+ 		       device->format, device->bits, device->eotf, device->cs);
+ 		return -1;
+ 	}
+-
++	printf("device->opened\n");
+ 	device->opened = 1;
+ 
+ 
+@@ -75,6 +75,7 @@ int hal_switch_device(disp_device_t *device, unsigned int fb_id)
+ 	       device->bits, device->eotf, device->cs);
+ 
+ 	fb_dev = get_fb_dev(fb_id);
++	printf("get_fb_dev\n");
+ 	if (NULL == fb_dev) {
+ 		pr_error("this device can not be bounded to fb(%u)", fb_id);
+ 		return -1;
+@@ -85,6 +86,7 @@ int hal_switch_device(disp_device_t *device, unsigned int fb_id)
+ 	if (FB_SHOW_LAYER & fb_dev->state) {
+ 		_show_layer_on_dev(fb_dev->layer_config, device->screen_id, 1);
+ 	}
++	printf("fb_dev->state |= DISP_DEV_OPENED\n");
+ 	fb_dev->state |= DISP_DEV_OPENED;
+ 
+ 	if (fb_dev->dev_num <
+@@ -95,7 +97,7 @@ int hal_switch_device(disp_device_t *device, unsigned int fb_id)
+ 		pr_error("ERR: %s the fb_dev->screen_id[] is overflowed\n",
+ 		       __func__);
+ 	}
+-
++	printf("hal_switch_device finished\n");
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+

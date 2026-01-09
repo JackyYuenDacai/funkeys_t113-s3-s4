@@ -1,0 +1,115 @@
+From 42051eab0e03b73bc8be221062c8962c675024b6 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 02:47:43 +0800
+Subject: [PATCH] add-g1392-fix-11
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/dev_disp.c  |  2 +-
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 18 ++++++++++++++----
+ 2 files changed, 15 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/dev_disp.c b/drivers/video/sunxi/disp2/disp/dev_disp.c
+index 925f952..fd5fdb4 100755
+--- a/drivers/video/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/sunxi/disp2/disp/dev_disp.c
+@@ -111,7 +111,7 @@ static void drv_lcd_open_callback(void *parg)
+ 	u32 sel = (u32)(unsigned long)parg;
+ 	s32 i = lcd_flow_cnt[sel]++;
+ 	flow = bsp_disp_lcd_get_open_flow(sel);
+-
++	flow->func_num;
+ 	if (NULL == flow) {
+ 		if (lcd_open_flow_retry[sel] <= 10) {
+ 			lcd_open_flow_retry[sel]++;;
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 6e6ea38..1d90d94 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -135,17 +135,18 @@ static s32 lcd_open_flow(u32 sel)
+ 
+ static s32 lcd_close_flow(u32 sel)
+ {
++    tick_printf("%s:g1392 start\n", __func__);
+ 	LCD_CLOSE_FUNC(sel, lcd_bl_close, 0);
+ 	LCD_CLOSE_FUNC(sel, lcd_panel_exit, 10);
+ 	LCD_CLOSE_FUNC(sel, sunxi_lcd_tcon_disable, 0);
+ 	LCD_CLOSE_FUNC(sel, lcd_power_off, 0);
+-
++tick_printf("%s:end\n", __func__);
+ 	return 0;
+ }
+ 
+ static void lcd_power_on(u32 sel)
+ {
+-    tick_printf("%s:start\n", __func__);
++    tick_printf("%s:g1392 start\n", __func__);
+ 	sunxi_lcd_pin_cfg(sel, 1);
+ 	sunxi_lcd_power_enable(sel, 0);
+ 	// sunxi_lcd_power_enable(sel, 1);
+@@ -158,28 +159,34 @@ static void lcd_power_on(u32 sel)
+ 	sunxi_lcd_delay_ms(1);
+ 	panel_reset(sel, 1);
+ 	sunxi_lcd_delay_ms(10);
+-    tick_printf("%s:end\n", __func__);
++    tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_power_off(u32 sel)
+ {
++    tick_printf("%s:g1392 start\n", __func__);
+ 	sunxi_lcd_pin_cfg(sel, 0);
+ 	sunxi_lcd_delay_ms(1);
+ 	panel_reset(sel, 0);
+ 	sunxi_lcd_delay_ms(1);
+ 	sunxi_lcd_power_disable(sel, 0);
++    tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_open(u32 sel)
+ {
++    tick_printf("%s:g1392 start\n", __func__);
+ 	sunxi_lcd_pwm_enable(sel);
+ 	sunxi_lcd_backlight_enable(sel);
++    tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_close(u32 sel)
+ {
++    tick_printf("%s:g1392 start\n", __func__);
+ 	sunxi_lcd_backlight_disable(sel);
+ 	sunxi_lcd_pwm_disable(sel);
++    tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ #define REGFLAG_DELAY         0XFE
+@@ -317,7 +324,7 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
+ static void lcd_panel_init(u32 sel)
+ {
+ 	u32 i = 0;
+-
++    tick_printf("%s:start\n", __func__);
+ 	sunxi_lcd_dsi_clk_enable(sel);
+ 	sunxi_lcd_delay_ms(10);
+ 
+@@ -332,14 +339,17 @@ static void lcd_panel_init(u32 sel)
+ 				   lcm_initialization_setting[i].count);
+ 		}
+ 	}
++    tick_printf("%s:end\n", __func__);
+ }
+ 
+ static void lcd_panel_exit(u32 sel)
+ {
++    tick_printf("%s:start\n", __func__);
+ 	sunxi_lcd_dsi_dcs_write_0para(sel, 0x28);
+ 	sunxi_lcd_delay_ms(10);
+ 	sunxi_lcd_dsi_dcs_write_0para(sel, 0x10);
+ 	sunxi_lcd_delay_ms(10);
++    tick_printf("%s:end\n", __func__);
+ }
+ 
+ /*sel: 0:lcd0; 1:lcd1*/
+-- 
+2.34.1
+

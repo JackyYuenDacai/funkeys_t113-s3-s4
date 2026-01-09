@@ -270,9 +270,9 @@
 	degree0					 = <0>;
 	fb0_format               = <10>;
 	fb0_buffer_num           = <2>;	
-	/*fb0_width                = <800>;*/
-	/*fb0_height               = <480>;*/  /*read from lcd*/
-	fb1_format               = <10>;
+	//fb0_width                = <0>;
+	//fb0_height               = <0>;
+	fb1_format               = <9>;
 	fb1_width                = <0>;
 	fb1_height               = <0>;
 	chn_cfg_mode             = <1>;
@@ -286,6 +286,7 @@
 /*	dcdc1-supply = <&reg_dcdc1>;*/
 }; 
 
+/*
 &lcd0 {
 	lcd_used            = <1>;					// 启用lcd		
 
@@ -312,9 +313,9 @@
 	lcd_vt              = <342>;				// vsync total cycle(line)
 	lcd_vspw            = <2>;					// vsync plus width(pixel)
 
-	lcd_lvds_if         = <0>;
-	lcd_lvds_colordepth = <1>;
-	lcd_lvds_mode       = <0>;
+	lcd_lvds_if         = <0>;	//LVDS通道数：0是单通道；1是双通道
+	lcd_lvds_colordepth = <1>;	//LVDS位宽：0是8位；1是6位
+	lcd_lvds_mode       = <0>;	//LVDS模式：0是NS模式；1是JEIDA模式
 	lcd_frm             = <0>;					// 0:关闭; 1:启用rgb666抖动; 2:启用rgb656抖动
 	lcd_io_phase        = <0x0000>;
 	lcd_gamma_en        = <0>;
@@ -327,6 +328,53 @@
 
 	pinctrl-0 = <&rgb18_pins_a>;
 	pinctrl-1 = <&rgb18_pins_b>;	
+};
+*/
+
+&lcd0 {
+	lcd_used            = <1>;					// 启用lcd		
+
+	lcd_driver_name     = "g1392";		// 使用 default_lcd 驱动
+	lcd_backlight       = <50>;
+	lcd_if              = <4>;					// 0:rgb 4:dsi
+
+	lcd_x               = <1080>;				// 宽度
+	lcd_y               = <1240>;				// 高度
+	lcd_width           = <65>;				// 屏幕物理宽度，单位 mm
+	lcd_height          = <75>;					// 屏幕物理高度，单位 mm
+	lcd_dclk_freq       = <88>;					// 屏幕时钟，单位 MHz
+
+	lcd_pwm_used        = <0>;					// 启用背光 PW
+	lcd_pwm_ch          = <7>;					// 使用 PWM 通道 7
+	lcd_pwm_freq        = <50000>;				// PWM 频率，单位 Hz
+	lcd_pwm_pol         = <1>;					// 背光 PWM 的极性	
+	//lcd_pwm_max_limit   = <255>;          	// 背光 PWM 的最大值（<=255）
+
+	lcd_hbp             = <40>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
+	lcd_ht              = <1148>;				// 1080+28+4+36 hsync total cycle(pixel)
+	lcd_hspw            = <4>;					// hsync plus width(pixel)	
+	lcd_vbp             = <12>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
+	lcd_vt              = <1268>;				// 1240+8+16+4vsync total cycle(line)
+	lcd_vspw            = <4>;					// vsync plus width(pixel)
+
+	lcd_dsi_lane        = <4>;
+	lcd_dsi_if          = <0>;
+	lcd_dsi_format      = <0>;
+	lcd_dsi_te          = <0>;
+	lcd_frm             = <0>;
+	lcd_io_phase        = <0>;
+	lcd_gamma_en        = <0>;
+	lcd_bright_curve_en = <0>;
+	lcd_cmap_en         = <0>;
+
+	deu_mode            = <0>;
+	lcdgamma4iep        = <22>;
+	smart_color         = <90>;
+ 
+
+	lcd_gpio_0 = <&pio PB 6 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&dsi4lane_pins_a>;
+	pinctrl-1 = <&dsi4lane_pins_b>;
 };
 
 &aliases {

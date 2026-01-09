@@ -1,0 +1,192 @@
+From 5bfbc99032d1e08327de3c0ac0ee13f003937b2e Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Wed, 7 Jan 2026 19:44:57 +0800
+Subject: [PATCH] g1392-cmd-fix-20
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 130 +++------------------
+ 1 file changed, 14 insertions(+), 116 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index c81aff4..77b1106 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -150,15 +150,15 @@ static void lcd_power_on(u32 sel)
+ 	sunxi_lcd_pin_cfg(sel, 1);
+ 	sunxi_lcd_power_enable(sel, 0);
+ 	sunxi_lcd_power_enable(sel, 1);
+-	sunxi_lcd_delay_ms(10);
++	sunxi_lcd_delay_ms(25);
+ 
+ 	/* reset lcd by gpio */
+ 	panel_reset(sel, 1);
+-	sunxi_lcd_delay_ms(1);
++	sunxi_lcd_delay_ms(25);
+ 	panel_reset(sel, 0);
+-	sunxi_lcd_delay_ms(1);
++	sunxi_lcd_delay_ms(25);
+ 	panel_reset(sel, 1);
+-	sunxi_lcd_delay_ms(10);
++	sunxi_lcd_delay_ms(25);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+@@ -169,23 +169,23 @@ static void lcd_power_off(u32 sel)
+ 	sunxi_lcd_delay_ms(1);
+ 	panel_reset(sel, 0);
+ 	sunxi_lcd_delay_ms(1);
+-	//sunxi_lcd_power_disable(sel, 0);
++	sunxi_lcd_power_disable(sel, 0);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_open(u32 sel)
+ {
+     tick_printf("%s:g1392 start\n", __func__);
+-	//sunxi_lcd_pwm_enable(sel);
+-	//sunxi_lcd_backlight_enable(sel);
++	// sunxi_lcd_pwm_enable(sel);
++	// sunxi_lcd_backlight_enable(sel);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_close(u32 sel)
+ {
+     tick_printf("%s:g1392 start\n", __func__);
+-	//sunxi_lcd_backlight_disable(sel);
+-	//sunxi_lcd_pwm_disable(sel);
++	// sunxi_lcd_backlight_disable(sel);
++	// sunxi_lcd_pwm_disable(sel);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+@@ -202,120 +202,18 @@ struct LCM_setting_table {
+  
+ static struct LCM_setting_table lcm_initialization_setting[] = {
+     {0xFE, 1, {0x00}},
+-    {0x5A, 1, {0x0B}},
+-    {0x5C, 1, {0x00}},
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x80}},
+-    {0x00, 1, {0x4F}},
+-    {0x08, 1, {0xDF}},
+-    {0x09, 1, {0xEE}},
+-    {0x0A, 1, {0xED}},
+-    {0x0B, 1, {0xFC}},
+-    {0x0C, 1, {0xF0}},
+-    {0x0D, 1, {0xFB}},
+-    {0x0E, 1, {0x00}},
+-    {0x0F, 1, {0x01}},
+-    {0x14, 1, {0x3F}},
+-    {0x15, 1, {0xB3}},
+-    {0x16, 1, {0x74}},
+-    {0x17, 1, {0xFF}},
+-    {0x18, 1, {0xAD}},
+-    {0x19, 1, {0x3F}},
+-    {0x1A, 1, {0xC9}},
+-    {0x1B, 1, {0x07}},
+-
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x10}},
+-    {0x00, 1, {0x9C}},
+-    {0x01, 1, {0x57}},
+-    {0x02, 1, {0x05}},
+-    {0x03, 1, {0x14}},
+-    {0x04, 1, {0x10}},
+-    {0x05, 1, {0x01}},
+-    {0x06, 1, {0x6C}},
+-    {0x07, 1, {0xA7}},
+-    {0x08, 1, {0x02}},
+-    {0x09, 1, {0x06}},
+-    {0x0A, 1, {0x00}},
+-    {0x0B, 1, {0x00}},
+-    {0x0C, 1, {0x8D}},
+-    {0x0D, 1, {0x07}},
+-
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x12}},
+-    {0x84, 1, {0x00}},
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x12}},
+-    {0x83, 1, {0x10}},
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x40}},
+-    {0x0D, 1, {0x18}},
+-    {0xFE, 1, {0x00}},
++ 
+     {0xC2, 1, {0x08}},
+-    {0x35, 1, {0x00}},
+-    {0x11, 1, {0x00}},
+-    {0x29, 1, {0x00}},
+-
+-    {0xFE, 1, {0x00}},
+-    {0x5A, 1, {0x0B}},
+-    {0x5C, 1, {0x00}},
+-    {0xFE, 1, {0x80}},
+-    {0x00, 1, {0x4F}},
+-    {0x08, 1, {0xDF}},
+-    {0x09, 1, {0xEE}},
+-    {0x0A, 1, {0xED}},
+-    {0x0B, 1, {0xFC}},
+-    {0x0C, 1, {0xF0}},
+-    {0x0D, 1, {0xFB}},
+-    {0x0E, 1, {0x00}},
+-    {0x0F, 1, {0x01}},
+-    {0x14, 1, {0x3F}},
+-    {0x15, 1, {0xB3}},
+-    {0x16, 1, {0x74}},
+-    {0x17, 1, {0xFF}},
+-    {0x18, 1, {0xAD}},
+-    {0x19, 1, {0x3F}},
+-    {0x1A, 1, {0xC9}},
+-    {0x1B, 1, {0x07}},
+-
+-    {0xFE, 1, {0x10}},
+-    {0x00, 1, {0x9C}},
+-    {0x01, 1, {0x57}},
+-    {0x02, 1, {0x05}},
+-    {0x03, 1, {0x14}},
+-    {0x04, 1, {0x10}},
+-    {0x05, 1, {0x01}},
+-    {0x06, 1, {0x6C}},
+-    {0x07, 1, {0xA7}},
+-    {0x08, 1, {0x02}},
+-    {0x09, 1, {0x06}},
+-    {0x0A, 1, {0x00}},
+-    {0x0B, 1, {0x00}},
+-    {0x0C, 1, {0x8D}},
+-    {0x0D, 1, {0x07}},
+-
+-    {0xFE, 1, {0x12}},
+-    {0x84, 1, {0x00}},
+-    {0x83, 1, {0x10}},
+-    {0xFE, 1, {0x00}},
+-    {0xFE, 1, {0x00}},
+-    {0x5C, 1, {0x0F}},
+-    {0xFE, 1, {0x80}},
+-    {0x00, 1, {0x4F}},
+-    {0x05, 1, {0x1C}},
+-    {0xFE, 1, {0x12}},
+-    {0x84, 1, {0x00}},
+-    {0xFE, 1, {0x00}},
+ 
+-    {0x2A, 4, {0x00, 0x00, 0x04, 0x37}},
+-    {0x2B, 4, {0x00, 0x00, 0x04, 0xD7}},
++     {0x35, 1, {0x08}},
++ 
+     {0x51, 2, {0x07, 0xFF}},
+ 
+     {0x11, 1, {0x00}},
+-    {REGFLAG_DELAY, REGFLAG_DELAY, {200} },
++    {REGFLAG_DELAY, REGFLAG_DELAY, {120} },
+ 
+     {0x29, 1, {0x00}},
+-    {REGFLAG_DELAY, REGFLAG_DELAY, {120} },
++    {REGFLAG_DELAY, REGFLAG_DELAY, {80} },
+ 
+     {REGFLAG_END_OF_TABLE, REGFLAG_END_OF_TABLE, {} }
+ 
+-- 
+2.34.1
+

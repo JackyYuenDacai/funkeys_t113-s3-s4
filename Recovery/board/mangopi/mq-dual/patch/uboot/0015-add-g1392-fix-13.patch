@@ -1,0 +1,71 @@
+From 1e2b3fb08ded57e456715a0900756587f1d845e5 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 03:15:38 +0800
+Subject: [PATCH] add-g1392-fix-13
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 18 +++++++++---------
+ 1 file changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 25d975a..eeac4c1 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -124,12 +124,12 @@ static void lcd_cfg_panel_info(panel_extend_para *info)
+ 
+ static s32 lcd_open_flow(u32 sel)
+ {
+-        tick_printf("%s:start\n", __func__);
++        tick_printf("%s:g1392 start\n", __func__);
+ 	LCD_OPEN_FUNC(sel, lcd_power_on, 10);
+ 	LCD_OPEN_FUNC(sel, lcd_panel_init, 120);
+-	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 120);
++	//LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 120);
+ 	LCD_OPEN_FUNC(sel, lcd_bl_open, 0);
+-        tick_printf("%s:end\n", __func__);
++        tick_printf("%s:g1392 end\n", __func__);
+ 	return 0;
+ }
+ 
+@@ -148,7 +148,7 @@ static void lcd_power_on(u32 sel)
+ {
+     tick_printf("%s:g1392 start\n", __func__);
+ 	sunxi_lcd_pin_cfg(sel, 1);
+-	sunxi_lcd_power_enable(sel, 0);
++	//sunxi_lcd_power_enable(sel, 0);
+ 	// sunxi_lcd_power_enable(sel, 1);
+ 	sunxi_lcd_delay_ms(10);
+ 
+@@ -169,23 +169,23 @@ static void lcd_power_off(u32 sel)
+ 	sunxi_lcd_delay_ms(1);
+ 	panel_reset(sel, 0);
+ 	sunxi_lcd_delay_ms(1);
+-	sunxi_lcd_power_disable(sel, 0);
++	//sunxi_lcd_power_disable(sel, 0);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_open(u32 sel)
+ {
+     tick_printf("%s:g1392 start\n", __func__);
+-	sunxi_lcd_pwm_enable(sel);
+-	sunxi_lcd_backlight_enable(sel);
++	//sunxi_lcd_pwm_enable(sel);
++	//sunxi_lcd_backlight_enable(sel);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+ static void lcd_bl_close(u32 sel)
+ {
+     tick_printf("%s:g1392 start\n", __func__);
+-	sunxi_lcd_backlight_disable(sel);
+-	sunxi_lcd_pwm_disable(sel);
++	//sunxi_lcd_backlight_disable(sel);
++	//sunxi_lcd_pwm_disable(sel);
+     tick_printf("%s:g1392 end\n", __func__);
+ }
+ 
+-- 
+2.34.1
+

@@ -1,0 +1,30 @@
+From 4345c96bcd2912b17db061b56ed967d896d329b9 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 01:03:51 +0800
+Subject: [PATCH] add-g1392-fix-3
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/boot_gui.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/sunxi/bootGUI/boot_gui.c b/drivers/video/sunxi/bootGUI/boot_gui.c
+index d7f25e5..20139ae 100644
+--- a/drivers/video/sunxi/bootGUI/boot_gui.c
++++ b/drivers/video/sunxi/bootGUI/boot_gui.c
+@@ -41,9 +41,11 @@ int boot_gui_init(void)
+ {
+ 	int ret = 0;
+ 
+-	tick_printf("%s:start\n", __func__);
++	tick_printf("%s:start test\n", __func__);
+ 	ret = disp_devices_open();
++	tick_printf("%s:device opened\n", __func__);
+ 	ret += fb_init();
++	tick_printf("%s:fb inited\n", __func__);
+ 	tick_printf("%s:finish\n", __func__);
+ 	return ret;
+ }
+-- 
+2.34.1
+

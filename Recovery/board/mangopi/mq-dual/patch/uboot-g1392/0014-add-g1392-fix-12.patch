@@ -1,0 +1,63 @@
+From 5a636c4471b23aa0290ee93b398472da5132d922 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 03:03:13 +0800
+Subject: [PATCH] add-g1392-fix-12
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 1d90d94..25d975a 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -125,9 +125,9 @@ static void lcd_cfg_panel_info(panel_extend_para *info)
+ static s32 lcd_open_flow(u32 sel)
+ {
+         tick_printf("%s:start\n", __func__);
+-	LCD_OPEN_FUNC(sel, lcd_power_on, 0);
+-	LCD_OPEN_FUNC(sel, lcd_panel_init, 10);
+-	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 10);
++	LCD_OPEN_FUNC(sel, lcd_power_on, 10);
++	LCD_OPEN_FUNC(sel, lcd_panel_init, 120);
++	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 120);
+ 	LCD_OPEN_FUNC(sel, lcd_bl_open, 0);
+         tick_printf("%s:end\n", __func__);
+ 	return 0;
+@@ -312,19 +312,19 @@ static struct LCM_setting_table lcm_initialization_setting[] = {
+     {0x51, 2, {0x07, 0xFF}},
+ 
+     {0x11, 1, {0x00}},
+-    {REGFLAG_DELAY, 200, {}},
++    {REGFLAG_DELAY, REGFLAG_DELAY, {200} },
+ 
+     {0x29, 1, {0x00}},
+-    {REGFLAG_DELAY, 120, {}},
++    {REGFLAG_DELAY, REGFLAG_DELAY, {120} },
+ 
+-    {REGFLAG_END_OF_TABLE, 0x00, {} }
++    {REGFLAG_END_OF_TABLE, REGFLAG_END_OF_TABLE, {} }
+ 
+ };
+ 
+ static void lcd_panel_init(u32 sel)
+ {
+ 	u32 i = 0;
+-    tick_printf("%s:start\n", __func__);
++    tick_printf("%s: g1392 start\n", __func__);
+ 	sunxi_lcd_dsi_clk_enable(sel);
+ 	sunxi_lcd_delay_ms(10);
+ 
+@@ -339,7 +339,7 @@ static void lcd_panel_init(u32 sel)
+ 				   lcm_initialization_setting[i].count);
+ 		}
+ 	}
+-    tick_printf("%s:end\n", __func__);
++    tick_printf("%s: g1392 end\n", __func__);
+ }
+ 
+ static void lcd_panel_exit(u32 sel)
+-- 
+2.34.1
+

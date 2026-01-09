@@ -1,0 +1,83 @@
+From 30ff36f966452e7439872076895aa3c06bda010c Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 01:56:11 +0800
+Subject: [PATCH 9/9] add-g1392-fix-7
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/de_drv_v3.h   | 3 ++-
+ drivers/video/sunxi/bootGUI/video_hal.c   | 6 +++++-
+ drivers/video/sunxi/disp2/disp/dev_disp.c | 5 +++--
+ 3 files changed, 10 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/video/sunxi/bootGUI/de_drv_v3.h b/drivers/video/sunxi/bootGUI/de_drv_v3.h
+index 8a875c4..c9fb3e2 100644
+--- a/drivers/video/sunxi/bootGUI/de_drv_v3.h
++++ b/drivers/video/sunxi/bootGUI/de_drv_v3.h
+@@ -19,6 +19,7 @@
+ 
+ #include <sunxi_display2.h>
+ #include <asm/arch/timer.h>
++#include <common.h>
+ 
+ extern long disp_ioctl(void *hd, unsigned int cmd, void *arg);
+ extern void enable_hdmi_clock_prepare(void);
+@@ -54,7 +55,7 @@ static inline int _switch_device_config(int sel, struct disp_device_config *conf
+ {
+ 	unsigned long arg[4] = {0};
+ 	int ret = 0;
+-
++	printf("_switch_device_config\n");
+ 	switch (config->type) {
+ 	case DISP_OUTPUT_TYPE_HDMI:
+ 	case DISP_OUTPUT_TYPE_TV:
+diff --git a/drivers/video/sunxi/bootGUI/video_hal.c b/drivers/video/sunxi/bootGUI/video_hal.c
+index 084f9f0..5ba4977 100644
+--- a/drivers/video/sunxi/bootGUI/video_hal.c
++++ b/drivers/video/sunxi/bootGUI/video_hal.c
+@@ -57,7 +57,11 @@ int hal_switch_device(disp_device_t *device, unsigned int fb_id)
+ 	config.eotf = device->eotf;
+ 	config.cs = device->cs;
+ 	config.dvi_hdmi = device->dvi_hdmi;
+-
++	printf("hal_switch_device start\n");
++	printf("switch device   sel=%d, type=%d, mode=%d, "
++		       "format=%d, bits=%d, eotf=%d, cs=%d\n",
++		       device->screen_id, device->type, device->mode,
++		       device->format, device->bits, device->eotf, device->cs);
+ 	if (0 != _switch_device_config(device->screen_id, &config)) {
+ 		pr_msg("switch device failed: sel=%d, type=%d, mode=%d, "
+ 		       "format=%d, bits=%d, eotf=%d, cs=%d\n",
+diff --git a/drivers/video/sunxi/disp2/disp/dev_disp.c b/drivers/video/sunxi/disp2/disp/dev_disp.c
+index 1fcd080..feea964 100755
+--- a/drivers/video/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/sunxi/disp2/disp/dev_disp.c
+@@ -148,7 +148,7 @@ static s32 drv_lcd_enable(u32 sel)
+ 	lcd_flow_cnt[sel] = 0;
+ 	lcd_op_finished[sel] = 0;
+ 	lcd_op_start[sel] = 1;
+-
++	printf("drv_lcd_enable\n");
+ 	init_timer(&lcd_timer[sel]);
+ 
+ 	drv_lcd_open_callback((void *)(unsigned long)sel);
+@@ -743,6 +743,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	struct disp_enhance *enhance = NULL;
+ 	struct disp_smbl *smbl = NULL;
+ 	struct disp_capture *cptr = NULL;
++	printf("disp_ioctl\n");
+ #if defined (SUPPORT_EINK)
+ 	struct disp_eink_manager *eink_manager = NULL;
+ #endif
+@@ -757,7 +758,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		__wrn("copy_from_user fail\n");
+ 		return -EFAULT;
+ 	}
+-
++	printf("disp_ioctl\n");
+ 	ubuffer[0] = *(unsigned long*)karg;
+ 	ubuffer[1] = (*(unsigned long*)(karg+1));
+ 	ubuffer[2] = (*(unsigned long*)(karg+2));
+-- 
+2.34.1
+

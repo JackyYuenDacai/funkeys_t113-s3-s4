@@ -1,0 +1,32 @@
+From e689b1a413668e11d65ff0ae318b864761b43e2d Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 02:02:43 +0800
+Subject: [PATCH] add-g1392-fix-8
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/dev_disp.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/dev_disp.c b/drivers/video/sunxi/disp2/disp/dev_disp.c
+index feea964..925f952 100755
+--- a/drivers/video/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/sunxi/disp2/disp/dev_disp.c
+@@ -148,11 +148,11 @@ static s32 drv_lcd_enable(u32 sel)
+ 	lcd_flow_cnt[sel] = 0;
+ 	lcd_op_finished[sel] = 0;
+ 	lcd_op_start[sel] = 1;
+-	printf("drv_lcd_enable\n");
++	printf("drv_lcd_enable start\n");
+ 	init_timer(&lcd_timer[sel]);
+-
++	printf("drv_lcd_enable init_timer\n");
+ 	drv_lcd_open_callback((void *)(unsigned long)sel);
+-
++	printf("drv_lcd_enable finish\n");
+     return 0;
+ }
+ 
+-- 
+2.34.1
+

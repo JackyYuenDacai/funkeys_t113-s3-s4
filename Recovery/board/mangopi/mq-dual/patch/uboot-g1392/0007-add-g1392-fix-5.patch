@@ -1,0 +1,42 @@
+From f3b5cb1a1769b038f7c1df632ba330a7e6bdba8d Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 01:37:35 +0800
+Subject: [PATCH] add-g1392-fix-5
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/dev_manage.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/sunxi/bootGUI/dev_manage.c b/drivers/video/sunxi/bootGUI/dev_manage.c
+index 56116a3..5557ccd 100644
+--- a/drivers/video/sunxi/bootGUI/dev_manage.c
++++ b/drivers/video/sunxi/bootGUI/dev_manage.c
+@@ -315,6 +315,7 @@ int disp_devices_open(void)
+ 		}
+ 		break;
+ 	case DISP_OUTPUT_TYPE_LCD:
++		printf("branch output lcd\n");
+ 		if (LCD_SKIP_OPEN == lcd_is_skip_open(output_dev->screen_id)) {
+ 			printf("lcd skip open\n");
+ 			hal_save_int_to_kernel("ban_bl", 1);
+@@ -322,6 +323,7 @@ int disp_devices_open(void)
+ 		}
+ 	case DISP_OUTPUT_TYPE_TV:
+ 	case DISP_OUTPUT_TYPE_VGA:
++		printf("hal switch device\n");
+ 		hal_switch_device(output_dev, FB_ID_0); /* fixme */
+ 		break;
+ 	default:
+@@ -345,7 +347,7 @@ int disp_devices_open(void)
+ 	if (hal_save_disp_device_config_to_kernel(0, 0))
+ 		printf("save disp device failed\n");
+ #endif
+-
++	printf("disp devices open finish!\n");
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+

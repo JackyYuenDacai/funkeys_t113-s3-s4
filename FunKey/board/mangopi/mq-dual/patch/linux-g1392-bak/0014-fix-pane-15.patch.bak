@@ -1,0 +1,35 @@
+From cecfc15c96224e28bde85fad845abdf4d6b275ff Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Fri, 9 Jan 2026 02:55:27 +0800
+Subject: [PATCH] fix-pane-15
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ .../fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c     | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
+index a1d09d51d..a8783eda7 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
+@@ -272,7 +272,7 @@ static struct lcd_clk_info clk_tbl[] = {
+ 	{LCD_IF_HV,     6, 1, 1, 0},
+ 	{LCD_IF_CPU,   12, 1, 1, 0},
+ 	{LCD_IF_LVDS,   7, 1, 1, 0},
+-	{LCD_IF_DSI,    4, 1, 4, 148500000},
++	{LCD_IF_DSI,    6, 1, 6, 88000000},
+ };
+ /* lcd */
+ /* lcd_dclk_freq * div -> lcd_clk_freq * div2 -> pll_freq */
+@@ -290,7 +290,7 @@ int disp_al_lcd_get_clk_info(u32 screen_id, struct lcd_clk_info *info, struct di
+ 		__wrn("panel is NULL\n");
+ 		return 0;
+ 	}
+-
++	
+ 	for (i = 0; i < sizeof(clk_tbl)/sizeof(struct lcd_clk_info); i++) {
+ 		if (clk_tbl[i].lcd_if == panel->lcd_if) {
+ 			tcon_div = clk_tbl[i].tcon_div;
+-- 
+2.34.1
+

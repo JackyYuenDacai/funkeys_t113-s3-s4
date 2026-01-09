@@ -1,0 +1,26 @@
+From 51d90b1fc41c00feb0afde869a651b906922273e Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Fri, 9 Jan 2026 03:02:14 +0800
+Subject: [PATCH] fix-pane-16
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+index 2c8cd1167..b5a103992 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+@@ -707,7 +707,7 @@ static struct lcd_clk_info clk_tbl[] = {
+ 	{LCD_IF_CPU, 12, 1, 1, 0},
+ 	{LCD_IF_LVDS, 7, 1, 1, 0},
+ #if defined(DSI_VERSION_40)
+-	{LCD_IF_DSI, 4, 1, 4, 150000000},
++	{LCD_IF_DSI, 6, 1, 6, 0},
+ #else
+ 	{LCD_IF_DSI, 4, 1, 4, 0},
+ #endif /*endif DSI_VERSION_40*/
+-- 
+2.34.1
+

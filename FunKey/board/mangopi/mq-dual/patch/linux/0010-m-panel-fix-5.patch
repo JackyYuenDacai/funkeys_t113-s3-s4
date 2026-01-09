@@ -1,0 +1,35 @@
+From a1fbe99c234c16313689185b9a14d0e999800676 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 15:56:50 +0800
+Subject: [PATCH] m-panel-fix-5
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index 3e8e5a195..6a568ab17 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -2064,7 +2064,7 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 	struct disp_manager *mgr = NULL;
+ 	unsigned bl;
+ 	int ret = 0;
+-
++	__wrn("lcd enable :%d\n",lcd->disp);
+ 	if ((lcd == NULL) || (lcdp == NULL)) {
+ 		DE_WRN("NULL hdl!\n");
+ 		return DIS_FAIL;
+@@ -2142,6 +2142,8 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 		lcdp->esd_inf.cnt = 0;
+ 	}
+ #endif
++	__wrn("[DISP_DBG] lcdp->lcd_panel_fun.cfg_open_flow=%p\n",
++	      lcdp->lcd_panel_fun.cfg_open_flow);
+ 	if (lcdp->lcd_panel_fun.cfg_open_flow)
+ 		lcdp->lcd_panel_fun.cfg_open_flow(lcd->disp);
+ 	else
+-- 
+2.34.1
+

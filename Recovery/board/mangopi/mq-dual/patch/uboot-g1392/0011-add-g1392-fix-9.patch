@@ -1,0 +1,26 @@
+From 70eacc2f05071459a69e3b99c6aab55a254d2d8c Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 02:14:52 +0800
+Subject: [PATCH] add-g1392-fix-9
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/panels.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/panels.c b/drivers/video/sunxi/disp2/disp/lcd/panels.c
+index a190e46..01fdaf7 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/panels.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/panels.c
+@@ -184,7 +184,7 @@ __lcd_panel_t* panel_array[] = {
+ #ifdef CONFIG_LCD_SUPPORT_NT35510_MIPI
+ 	&nt35510_panel,
+ #endif
+-#ifdef LCD_SUPPORT_G1392_1080X1240
++#ifdef CONFIG_LCD_SUPPORT_G1392_1080X1240
+ 	&g1392_panel,
+ #endif
+ 	/* add new panel below */
+-- 
+2.34.1
+

@@ -1,0 +1,26 @@
+From 02a9b155a127afa7577b97aedb15bd649d9087d5 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 02:37:49 +0800
+Subject: [PATCH] add-g1392-fix-10
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/panels.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/panels.h b/drivers/video/sunxi/disp2/disp/lcd/panels.h
+index f50a8ab..6e05b0e 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/panels.h
++++ b/drivers/video/sunxi/disp2/disp/lcd/panels.h
+@@ -289,4 +289,8 @@ extern __lcd_panel_t icn6202_panel;
+ extern __lcd_panel_t nt35510_panel;
+ #endif
+ 
++#ifdef CONFIG_LCD_SUPPORT_G1392_1080X1240
++extern __lcd_panel_t g1392_panel;
++#endif
++
+ #endif
+-- 
+2.34.1
+

@@ -286,38 +286,40 @@
 /*	dcdc1-supply = <&reg_dcdc1>;*/
 }; 
 
-/*
+
+
 &lcd0 {
 	lcd_used            = <1>;					// 启用lcd		
 
-	lcd_driver_name     = "default_lcd";		// 使用 default_lcd 驱动
+	lcd_driver_name     = "g1392";		// 使用 default_lcd 驱动
 	lcd_backlight       = <50>;
-	lcd_if              = <0>;					// 0:rgb 4:dsi
+	lcd_if              = <4>;					// 0:rgb 4:dsi
 
-	lcd_x               = <480>;				// 宽度
-	lcd_y               = <320>;				// 高度
-	lcd_width           = <480>;				// 屏幕物理宽度，单位 mm
-	lcd_height          = <320>;					// 屏幕物理高度，单位 mm
-	lcd_dclk_freq       = <49>;					// 屏幕时钟，单位 MHz
+	lcd_x               = <1080>;				// 宽度
+	lcd_y               = <1240>;				// 高度
+	lcd_width           = <65>;				// 屏幕物理宽度，单位 mm
+	lcd_height          = <75>;					// 屏幕物理高度，单位 mm
+	lcd_dclk_freq       = <88>;					// 屏幕时钟，单位 MHz
 
-	lcd_pwm_used        = <1>;					// 启用背光 PW
+	lcd_pwm_used        = <0>;					// 启用背光 PW
 	lcd_pwm_ch          = <7>;					// 使用 PWM 通道 7
 	lcd_pwm_freq        = <50000>;				// PWM 频率，单位 Hz
 	lcd_pwm_pol         = <1>;					// 背光 PWM 的极性	
 	//lcd_pwm_max_limit   = <255>;          	// 背光 PWM 的最大值（<=255）
 
-	lcd_hbp             = <2>;					// hsync back porch(pixel) + hsync plus width(pixel);
-	lcd_ht              = <486>;				// hsync total cycle(pixel)
-	lcd_hspw            = <2>;					// hsync plus width(pixel)	
-	lcd_vbp             = <20>;					// vsync back porch(line) + vysnc plus width(line)
-	lcd_vt              = <342>;				// vsync total cycle(line)
-	lcd_vspw            = <2>;					// vsync plus width(pixel)
+	lcd_hbp             = <40>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
+	lcd_ht              = <1148>;				// 1080+28+4+36 hsync total cycle(pixel)
+	lcd_hspw            = <4>;					// hsync plus width(pixel)	
+	lcd_vbp             = <12>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
+	lcd_vt              = <1268>;				// 1240+8+16+4vsync total cycle(line)
+	lcd_vspw            = <4>;					// vsync plus width(pixel)
 
-	lcd_lvds_if         = <0>;	//LVDS通道数：0是单通道；1是双通道
-	lcd_lvds_colordepth = <1>;	//LVDS位宽：0是8位；1是6位
-	lcd_lvds_mode       = <0>;	//LVDS模式：0是NS模式；1是JEIDA模式
-	lcd_frm             = <0>;					// 0:关闭; 1:启用rgb666抖动; 2:启用rgb656抖动
-	lcd_io_phase        = <0x0000>;
+	lcd_dsi_lane        = <4>;
+	lcd_dsi_if          = <0>;
+	lcd_dsi_format      = <0>;
+	lcd_dsi_te          = <0>;
+	lcd_frm             = <0>;
+	lcd_io_phase        = <0>;
 	lcd_gamma_en        = <0>;
 	lcd_bright_curve_en = <0>;
 	lcd_cmap_en         = <0>;
@@ -325,64 +327,9 @@
 	deu_mode            = <0>;
 	lcdgamma4iep        = <22>;
 	smart_color         = <90>;
+ 
 
-	pinctrl-0 = <&rgb18_pins_a>;
-	pinctrl-1 = <&rgb18_pins_b>;	
-};
-*/
-
-&lcd0 {
-	lcd_used            = <1>;
-
-	lcd_driver_name     = "default_lcd";
-	lcd_backlight       = <50>;
-	lcd_if              = <4>;	//2:ttl; 3:lvds; 4:dsi
-
-	lcd_x               = <640>;
-	lcd_y               = <480>;
-	lcd_width           = <640>;
-	lcd_height          = <480>;
-	lcd_dclk_freq       = <90>;
-
-	lcd_pwm_used        = <1>;
-	lcd_pwm_ch          = <7>;
-	lcd_pwm_freq        = <50000>;
-	lcd_pwm_pol         = <1>;
-	lcd_pwm_max_limit   = <255>;
-
-	lcd_hbp             = <220>;	//是有效行间，指行同步信号hsync开始到有效数据间的dclk的cyccle个数，包含行同步信号区；即lcd_hbp等于实际hbp+实际
-	lcd_ht              = <1084>;	//DCLK的cycle个数，等于lcd_x+lcd_hspw+lcd_hbp+lcd_hfp；驱动会自动根据这个值计算lcd_hfp
-	lcd_hspw            = <4>;		//是行同步信号的宽度。即1个data cycle的时间
-	lcd_vbp             = <70>;		//场同步信号sync开始到有效数据间的行数，包括场同步信号区；即lcd_vbp等于实际vbp+实际vspw
-	lcd_vt              = <624>;	//场的总行数，等于lcd_y+lcd_vspw+lcd_vbp+lcd_vfp；驱动会自动根据这个值计算lcd_vfp
-	lcd_vspw            = <2>;		//场同步信号的宽度
-
-	lcd_dsi_if          = <0>;		//mipi-DSI的类型：0是video mode（即：实时刷屏）；1是command mode（即：屏幕有个te引脚）
-	lcd_dsi_lane        = <4>;
-	lcd_lvds_if         = <0>;
-	lcd_lvds_colordepth = <0>;
-	lcd_lvds_mode       = <0>;
-	lcd_frm             = <0>;		//LCD的色深，0是RGB888；1是RGB666；2是RGB565
-	lcd_hv_clk_phase    = <0>;
-	lcd_hv_sync_polarity= <0>;
-	//lcd_dsi_format      = <0>;		//mipi-DSI的数据格式：0是24bit RGB；1是loosely的18bit RGB；2是18bit RGB；3是16bit RGB
-	lcd_dsi_te          = <1>;		//mipi-DSI的刷屏间隔：0的刷屏间隔是lcd_ht*lcd_vt；1或2的刷屏间隔是2个te脉冲；0是自动；1是上升沿；2是下降沿
-	lcd_io_phase        = <0x0000>;
-	lcd_gamma_en        = <0>;		//伽马参数：0是关闭；1是开启；设置1后需要对屏驱动中的lcd_gamma_tbl[256]赋值
-	lcd_bright_curve_en = <0>;
-	lcd_cmap_en         = <0>;		//色彩映射功能：0是关闭；1是开启；设置1后需要对lcd_cmap_tbl[2][3][4]进行赋值
-	lcd_fsync_en        = <0>;
-	lcd_fsync_act_time  = <1000>;
-	lcd_fsync_dis_time  = <1000>;
-	lcd_fsync_pol       = <0>;	
-
-	deu_mode            = <0>;
-	lcdgamma4iep        = <22>;
-	smart_color         = <90>;
-
-	lcd_gpio_0 = <&pio PE 11 GPIO_ACTIVE_HIGH>;
-	lcd_vsync = <&pio PD 21 2 0 3 0>;
-	//lcd_vsync  = port:PD21<2><0><3><default>
+	lcd_gpio_0 = <&pio PB 6 GPIO_ACTIVE_LOW>;
 	pinctrl-0 = <&dsi4lane_pins_a>;
 	pinctrl-1 = <&dsi4lane_pins_b>;
 };

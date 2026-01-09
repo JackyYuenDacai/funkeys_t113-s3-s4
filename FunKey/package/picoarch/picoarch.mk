@@ -4,9 +4,9 @@
 #
 ################################################################################
 
-PICOARCH_VERSION = v1.0-funkey-s
+PICOARCH_VERSION = v1.0.0.1-funkey-s
 PICOARCH_SITE_METHOD = git
-PICOARCH_SITE = https://github.com/DrUm78/picoarch.git
+PICOARCH_SITE = https://github.com/JackyYuenDacai/picoarch.git
 PICOARCH_LICENSE = MAME
 PICOARCH_LICENSE_FILES = LICENSE
 

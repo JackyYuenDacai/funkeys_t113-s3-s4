@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Sat, 4 Jan 2026 17:45:05 +0800
+Subject: [PATCH] sunxi: board: Configure internal LDOB for DRAM power
+
+This patch enables and sets the internal LDOB regulator to supply
+the correct voltage (approximately 1.35V) for DDR3 memory on the
+Allwinner T113 platform.
+
+Signed-off-by: Your Name <you@example.com>
+---
+ arch/arm/mach-sunxi/board.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/arch/arm/mach-sunxi/board.c b/arch/arm/mach-sunxi/board.c
+index xxxxxxx..xxxxxxx 100644
+--- a/arch/arm/mach-sunxi/board.c
++++ b/arch/arm/mach-sunxi/board.c
+@@ -51,6 +51,17 @@ void s_init(void)
+
+ 	clock_init();
+ 	timer_init();
++
++	#define SUNXI_SYS_LDO_CTRL_REG	0x03000150
++	/* Example: For ~1.35V (1350000uV), selector is approx. 14 */
++	#define LDOB_SELECTOR_1_35V		(14 << 8)
++
++	/* Read-Modify-Write operation */
++	u32 reg_val = readl(SUNXI_SYS_LDO_CTRL_REG);
++	reg_val &= ~(0xFF << 8);       /* Clear old LDOB bits [15:8] */
++	reg_val |= LDOB_SELECTOR_1_35V; /* Set new value */
++	writel(0x0000190f, SUNXI_SYS_LDO_CTRL_REG);
++
+ 	gpio_init();
+ 
+ 	eth_init_board();
+-- 
+2.25.1
+

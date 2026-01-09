@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Sat, 4 Jan 2026 17:45:06 +0800
+Subject: [PATCH] sunxi: board: Configure internal LDOB for DRAM power
+
+This patch enables and sets the internal LDOB regulator to supply
+the correct voltage (approximately 1.35V) for DDR3 memory on the
+Allwinner T113 platform.
+
+Signed-off-by: Your Name <you@example.com>
+---
+ common/board_f.c | 1 +
+ 1 file changed, 1 insertions(+)
+
+diff --git a/common/board_f.c b/common/board_f.c
+index xxxxxxx..xxxxxxx 100644
+--- a/common/board_f.c
++++ b/common/board_f.c
+@@ -947,7 +947,8 @@ void board_init_f(ulong boot_flags)
+ {
+ 	gd->flags = boot_flags;
+ 	gd->have_console = 0;
++	writel(0x0000190f, 0x03000150);
+ 
+ 	if (initcall_run_list(init_sequence_f))
+ 		hang();
+
+-- 
+2.25.1
+
+

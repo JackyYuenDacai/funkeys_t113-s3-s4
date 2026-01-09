@@ -1,0 +1,40 @@
+From 24baa2eaa1ea8d557a401b69197f0b73bcb60680 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 6 Jan 2026 01:28:34 +0800
+Subject: [PATCH] add-g1392-fix-4
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/dev_manage.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/video/sunxi/bootGUI/dev_manage.c b/drivers/video/sunxi/bootGUI/dev_manage.c
+index 5fdf4c4..56116a3 100644
+--- a/drivers/video/sunxi/bootGUI/dev_manage.c
++++ b/drivers/video/sunxi/bootGUI/dev_manage.c
+@@ -269,11 +269,11 @@ int disp_devices_open(void)
+ 	int def_output_dev;
+ 	int verify_mode;
+ 	disp_device_t *output_dev = NULL;
+-
++	printf("disp_devices_open start\n");
+ 	/* 1.get display g_devices list */
+ 	memset((void *)g_devices, 0, DISP_DEV_NUM * sizeof(disp_device_t));
+ 	def_output_dev = get_device_configs(g_devices, &actual_dev_num);
+-
++	printf("got display g_devices list: [0].type,mode = %d,%d\n",g_devices[0].type,g_devices[0].mode);
+ 	/* 2.chose one as output by doing hpd */
+ 	if (g_devices[0].type == DISP_OUTPUT_TYPE_LCD) {
+ 		output_dev = &g_devices[0];
+@@ -282,7 +282,7 @@ int disp_devices_open(void)
+ 		if (NULL == output_dev)
+ 			output_dev = &(g_devices[def_output_dev]);
+ 	}
+-
++	printf("output device chosen\n");
+ 	/* 3.do open one device */
+ 	switch (output_dev->type) {
+ 	case DISP_OUTPUT_TYPE_HDMI:
+-- 
+2.34.1
+

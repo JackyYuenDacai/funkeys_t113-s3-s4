@@ -1,0 +1,55 @@
+From 68c3988302a77d9755e80c5dc08344641613436e Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 00:13:18 +0800
+Subject: [PATCH] fix-pane-17
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index c1f169d57..ff3badba1 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -685,18 +685,24 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 	}
+ 	dsi_rate = pll_rate / clk_info.dsi_div;
+ 
++	DE_WRN("lyrdebug start\n");
+ 	if (lcdp->clk_parent) {
++		DE_WRN("lyrdebug set pll_rate_set(%ld)\n",pll_rate);
+ 		clk_set_rate(lcdp->clk_parent, pll_rate);
+ 		pll_rate_set = clk_get_rate(lcdp->clk_parent);
++		DE_WRN("lyrdebug get pll_rate_set(%ld)\n",pll_rate_set);
+ 	}
+ 
+ 	if (clk_info.lcd_div)
+ 		lcd_rate_set = pll_rate_set / clk_info.lcd_div;
+ 	else
+ 		lcd_rate_set = pll_rate_set;
+-
++	DE_WRN("lyrdebug get lcd_rate_set-1-(%ld)\n",lcd_rate_set);
+ 	clk_set_rate(lcdp->clk_tcon_lcd, lcd_rate_set);
+ 	lcd_rate_set = clk_get_rate(lcdp->clk_tcon_lcd);
++	DE_WRN("lyrdebug get lcd_rate_set-2-(%ld)\n",lcd_rate_set);
++	DE_WRN("lyrdebug end\n");
++
+ #if defined(SUPPORT_DSI)
+ 	if (lcdp->panel_info.lcd_if == LCD_IF_DSI) {
+ 		if (lcdp->panel_info.lcd_dsi_if == LCD_DSI_IF_COMMAND_MODE)
+@@ -750,7 +756,10 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 		     lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate,
+ 		     pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
+ 	}
+-
++	DE_WRN
++		("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
++			lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate,
++			pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+

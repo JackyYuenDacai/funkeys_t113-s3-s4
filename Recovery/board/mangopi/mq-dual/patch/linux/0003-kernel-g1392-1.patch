@@ -1,0 +1,35 @@
+From 358e3a17643e4a3c8b9b656bdd98901d2ab434b9 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Wed, 7 Jan 2026 20:43:11 +0800
+Subject: [PATCH] kernel-g1392-1
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+index 3a96f5931..9a2d89f96 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+@@ -143,7 +143,7 @@ static s32 lcd_close_flow(u32 sel)
+ 
+ static void lcd_power_on(u32 sel)
+ {
+-    tick_printf("%s:kg1392 start\n", __func__);
++    
+ 	sunxi_lcd_pin_cfg(sel, 1);
+ 	sunxi_lcd_power_enable(sel, 0);
+ 	sunxi_lcd_power_enable(sel, 1);
+@@ -156,7 +156,7 @@ static void lcd_power_on(u32 sel)
+ 	sunxi_lcd_delay_ms(25);
+ 	panel_reset(sel, 1);
+ 	sunxi_lcd_delay_ms(25);
+-    tick_printf("%s:kg1392 end\n", __func__);
++   
+ }
+ 
+ static void lcd_power_off(u32 sel)
+-- 
+2.34.1
+

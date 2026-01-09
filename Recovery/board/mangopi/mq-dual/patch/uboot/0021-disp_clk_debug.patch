@@ -1,0 +1,27 @@
+From 1fa9c5fdcf52f8910b82ce16eb56995096eaea37 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 01:20:14 +0800
+Subject: [PATCH] disp_clk_debug
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/de/disp_lcd.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/sunxi/disp2/disp/de/disp_lcd.c
+index daa3e1d..e5ed25e 100755
+--- a/drivers/video/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/sunxi/disp2/disp/de/disp_lcd.c
+@@ -969,7 +969,8 @@ static s32 lcd_clk_config(struct disp_device* lcd)
+ 		DE_WRN("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
+ 			lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate, pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
+ 	}
+-
++		DE_WRN("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
++			lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate, pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+

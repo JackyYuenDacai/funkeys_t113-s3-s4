@@ -1,0 +1,30 @@
+From d3742bf337a4bcdcc1f7b81c3a7796b0b642a807 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 04:39:14 +0800
+Subject: [PATCH] m panel fix-3
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index 4a28ae5dd..1ef6cf37f 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -2454,7 +2454,11 @@ static s32 disp_lcd_set_panel_funs(struct disp_device *lcd, char *name,
+ 		return DIS_FAIL;
+ 	}
+ 
+-
++	/* DEBUG: log every panel selection attempt */
++	pr_warn("[DISP_DBG] set_panel_funs: lcd %d, drv='%s', panel='%s'\n",
++		 lcd->disp,
++		 lcdp->panel_info.lcd_driver_name ? lcdp->panel_info.lcd_driver_name : "(null)",
++		 name ? name : "(null)");
+ 	DE_INF("lcd %d, driver_name %s,  panel_name %s\n", lcd->disp, lcdp->panel_info.lcd_driver_name,
+ 	       name);
+ 	if (!strcmp(lcdp->panel_info.lcd_driver_name, name)) {
+-- 
+2.34.1
+

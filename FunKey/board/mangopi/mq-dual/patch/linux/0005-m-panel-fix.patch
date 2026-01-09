@@ -1,0 +1,76 @@
+From fd1ed5fe95c9f1666a62e3a0a22fd25a9d3fa854 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 02:57:06 +0800
+Subject: [PATCH] m panel fix
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/Makefile     | 4 ++--
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c | 4 ++--
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.h | 5 ++---
+ 3 files changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/Makefile b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+index b1c4f5181..0e28060a5 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/Makefile
++++ b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+@@ -26,7 +26,7 @@ disp-$(CONFIG_SUNXI_DISP2_FB_HW_ROTATION_SUPPORT) += fb_g2d_rot.o
+ 
+ disp-objs += lcd/panels.o lcd/lcd_source.o lcd/default_panel.o
+ disp-objs += of_service.o de/lcd_debug.o
+-
++disp-objs += lcd/g1392.o
+ disp-$(CONFIG_LCD_SUPPORT_HE0801A068) += lcd/he0801a068.o
+ disp-$(CONFIG_EINK_PANEL_USED) += lcd/default_eink.o
+ disp-$(CONFIG_LCD_SUPPORT_LT070ME05000) += lcd/lt070me05000.o
+@@ -63,7 +63,7 @@ disp-$(CONFIG_LCD_SUPPORT_FX070) += lcd/fx070.o
+ disp-$(CONFIG_LCD_SUPPORT_K101IM2QA04) += lcd/k101im2qa04.o
+ disp-$(CONFIG_LCD_SUPPORT_CC08021801_310_800X1280) += lcd/CC08021801_310_800X1280.o
+ disp-$(CONFIG_LCD_SUPPORT_K080_IM2HYL802R_800X1280) += lcd/K080_IM2HYL802R_800X1280.o
+-disp-$(CONFIG_LCD_SUPPORT_G1392_1080X1240) += lcd/g1392.o
++ 
+ disp-$(CONFIG_LCD_SUPPORT_K101_IM2BYL02_L_800X1280) += lcd/K101_IM2BYL02_L_800X1280.o
+ disp-y += lcd/super_lcd_driver.o
+ 
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
+index a44663849..c6af109d8 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
+@@ -124,9 +124,9 @@ struct __lcd_panel *panel_array[] = {
+ #ifdef CONFIG_LCD_SUPPORT_K080_IM2HYL802R_800X1280
+ 	&K080_IM2HYL802R_800X1280_mipi_panel,
+ #endif
+-#ifdef CONFIG_LCD_SUPPORT_G1392_1080X1240
++
+ 	&g1392_panel,
+-#endif
++
+ #ifdef CONFIG_LCD_SUPPORT_K101_IM2BYL02_L_800X1280
+ 	&K101_IM2BYL02_L_800X1280_mipi_panel,
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.h b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.h
+index cda0558b7..992e76671 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.h
+@@ -86,6 +86,7 @@ extern struct __lcd_panel S6D7AA0X01_panel;
+ extern struct __lcd_panel gg1p4062utsw_panel;
+ extern struct __lcd_panel ls029b3sx02_panel;
+ extern struct __lcd_panel he0801a068_panel;
++extern struct __lcd_panel g1392_panel;
+ #ifdef CONFIG_LCD_SUPPORT_INET_DSI_PANEL
+ extern struct __lcd_panel inet_dsi_panel;
+ #endif
+@@ -167,9 +168,7 @@ extern struct __lcd_panel K101_IM2BYL02_L_800X1280_mipi_panel;
+ #ifdef CONFIG_LCD_SUPPORT_K080_IM2HYL802R_800X1280
+ extern struct __lcd_panel K080_IM2HYL802R_800X1280_mipi_panel;
+ #endif
+-#ifdef CONFIG_LCD_SUPPORT_G1392_1080X1240
+-extern struct __lcd_panel g1392_panel;
+-#endif
++ 
+ extern struct __lcd_panel super_lcd_panel;
+ 
+ #endif
+-- 
+2.34.1
+
