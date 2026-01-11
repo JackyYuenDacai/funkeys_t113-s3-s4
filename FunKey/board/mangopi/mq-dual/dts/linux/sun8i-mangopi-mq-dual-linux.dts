@@ -1519,7 +1519,7 @@ VSW
 &usbc1 {
 	device_type = "usbc1";
 	usb_port_type = <0x01>;
-	sb_detect_type = <0x1>;
+	usb_detect_type = <0x2>;
 	usb_regulator_io = "nocare";
 	usb_wakeup_suspend = <0>;
 	status = "okay";

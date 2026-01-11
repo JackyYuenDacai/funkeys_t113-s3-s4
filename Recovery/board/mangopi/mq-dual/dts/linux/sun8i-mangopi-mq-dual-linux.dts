@@ -1102,6 +1102,7 @@ chn_cfg_mode     : Hardware DE channel allocation config. 0:single display with 
                    in display.
 ----------------------------------------------------------------------------------*/
 
+
 &disp {
 	disp_init_enable         = <1>;
 	disp_mode                = <0>;
@@ -1149,6 +1150,7 @@ chn_cfg_mode     : Hardware DE channel allocation config. 0:single display with 
 	/*VCC-PD*/
 /*	dcdc1-supply = <&reg_dcdc1>;*/
 }; 
+ 
  
 
 /*----------------------------------------------------------------------------------
@@ -1228,7 +1230,7 @@ pull up or pull down(default 0), driver level(default 1), data>
 
 &lcd0 {
 	lcd_used            = <1>;					// 启用lcd		
-
+	lcd_model_name = "g1392";
 	lcd_driver_name     = "g1392";		// 使用 default_lcd 驱动
 	lcd_backlight       = <50>;
 	lcd_if              = <4>;					// 0:rgb 4:dsi
@@ -1517,7 +1519,7 @@ VSW
 &usbc1 {
 	device_type = "usbc1";
 	usb_port_type = <0x01>;
-	sb_detect_type = <0x1>;
+	usb_detect_type = <0x2>;
 	usb_regulator_io = "nocare";
 	usb_wakeup_suspend = <0>;
 	status = "okay";
