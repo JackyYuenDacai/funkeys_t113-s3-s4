@@ -1,0 +1,28 @@
+From 34650e16dcface2b7db9dbff675103f5d1794869 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 16:03:13 +0800
+Subject: [PATCH] disp_clk_debug-1
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/bootGUI/fb_con.c | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/drivers/video/sunxi/bootGUI/fb_con.c b/drivers/video/sunxi/bootGUI/fb_con.c
+index b4e293b..d0dc89a 100644
+--- a/drivers/video/sunxi/bootGUI/fb_con.c
++++ b/drivers/video/sunxi/bootGUI/fb_con.c
+@@ -353,7 +353,10 @@ int fb_init(void)
+ 
+ 	for (; id < FRAMEBUFFER_NUM; ++id) {
+ 		get_fb_configs(&fb_cfg, id);
++		printf("fb%d_cfg[w=%d,h=%d,bpp=%d,format=%d]\n", id,
++			fb_cfg.width, fb_cfg.height, fb_cfg.bpp, fb_cfg.format_cfg);
+ 		if (valid_fb_cfg(&fb_cfg)) {
++			printf("create fb%d\n", id);
+ 			memset((void *)&(s_fb_list[id]), 0, sizeof(s_fb_list[0]));
+ 			s_fb_list[id].fb_id = id;
+ 			if (creat_framebuffer(&s_fb_list[id], &fb_cfg))
+-- 
+2.34.1
+

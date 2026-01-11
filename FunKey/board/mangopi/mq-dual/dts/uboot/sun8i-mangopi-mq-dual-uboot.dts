@@ -305,11 +305,11 @@
 	lcd_pwm_pol         = <1>;					// 背光 PWM 的极性	
 	//lcd_pwm_max_limit   = <255>;          	// 背光 PWM 的最大值（<=255）
 
-	lcd_hbp             = <40>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
-	lcd_ht              = <1148>;				// 1080+28+4+36 hsync total cycle(pixel)
+	lcd_hbp             = <44>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
+	lcd_ht              = <1164>;				// 1080+28+4+36 hsync total cycle(pixel)
 	lcd_hspw            = <4>;					// hsync plus width(pixel)	
-	lcd_vbp             = <12>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
-	lcd_vt              = <1268>;				// 1240+8+16+4vsync total cycle(line)
+	lcd_vbp             = <24>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
+	lcd_vt              = <1280>;				// 1240+8+16+4vsync total cycle(line)
 	lcd_vspw            = <4>;					// vsync plus width(pixel)
 
 	lcd_dsi_lane        = <4>;

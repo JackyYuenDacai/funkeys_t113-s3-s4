@@ -48,7 +48,15 @@ index 389797d7f..60af3113c 100644
  		g_fbi.fbinfo[i]->var.nonstd = 0;
  		g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
  		g_fbi.fbinfo[i]->var.transp.length = 8;
-
+@@ -2473,6 +2473,8 @@ s32 fb_init(struct platform_device *pdev)
+ 				fb_para.output_height,
+ 				g_fbi.fbinfo[i]->var.bits_per_pixel,
+ 				fb_para.buffer_num);
++			g_fbi.fbinfo[i]->var.bits_per_pixel = 24;
++			fb_para.bpp = 24;
+ 			ret = display_fb_request(i, &fb_para);
+ 			if (ret)
+ 				break;
 -- 
 2.34.1
 

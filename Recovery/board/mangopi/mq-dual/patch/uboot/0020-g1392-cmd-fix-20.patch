@@ -46,8 +46,8 @@ index c81aff4..77b1106 100644
      tick_printf("%s:g1392 start\n", __func__);
 -	//sunxi_lcd_pwm_enable(sel);
 -	//sunxi_lcd_backlight_enable(sel);
-+	// sunxi_lcd_pwm_enable(sel);
-+	// sunxi_lcd_backlight_enable(sel);
++	sunxi_lcd_pwm_enable(sel);
++	sunxi_lcd_backlight_enable(sel);
      tick_printf("%s:g1392 end\n", __func__);
  }
  
@@ -56,8 +56,8 @@ index c81aff4..77b1106 100644
      tick_printf("%s:g1392 start\n", __func__);
 -	//sunxi_lcd_backlight_disable(sel);
 -	//sunxi_lcd_pwm_disable(sel);
-+	// sunxi_lcd_backlight_disable(sel);
-+	// sunxi_lcd_pwm_disable(sel);
++	sunxi_lcd_backlight_disable(sel);
++	sunxi_lcd_pwm_disable(sel);
      tick_printf("%s:g1392 end\n", __func__);
  }
  

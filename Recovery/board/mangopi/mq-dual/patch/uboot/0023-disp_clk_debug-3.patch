@@ -1,0 +1,40 @@
+From c9c8bf202dfb5b00f740207fb2acc05d310a30f2 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 22:49:29 +0800
+Subject: [PATCH] disp_clk_debug-3
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/sunxi/disp2/disp/lcd/g1392.c | 12 +++---------
+ 1 file changed, 3 insertions(+), 9 deletions(-)
+
+diff --git a/drivers/video/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+index 77b1106..30220c6 100644
+--- a/drivers/video/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/sunxi/disp2/disp/lcd/g1392.c
+@@ -202,19 +202,13 @@ struct LCM_setting_table {
+  
+ static struct LCM_setting_table lcm_initialization_setting[] = {
+     {0xFE, 1, {0x00}},
+- 
+     {0xC2, 1, {0x08}},
+-
+-     {0x35, 1, {0x08}},
+- 
++    {0x35, 1, {0x00}},
+     {0x51, 2, {0x07, 0xFF}},
+-
+-    {0x11, 1, {0x00}},
++    {0x11, 0, {0x00}},
+     {REGFLAG_DELAY, REGFLAG_DELAY, {120} },
+-
+-    {0x29, 1, {0x00}},
++    {0x29, 0, {0x00}},
+     {REGFLAG_DELAY, REGFLAG_DELAY, {80} },
+-
+     {REGFLAG_END_OF_TABLE, REGFLAG_END_OF_TABLE, {} }
+ 
+ };
+-- 
+2.34.1
+

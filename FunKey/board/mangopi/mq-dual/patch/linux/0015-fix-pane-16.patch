@@ -17,7 +17,7 @@ index 2c8cd1167..b5a103992 100644
  	{LCD_IF_LVDS, 7, 1, 1, 0},
  #if defined(DSI_VERSION_40)
 -	{LCD_IF_DSI, 4, 1, 4, 150000000},
-+	{LCD_IF_DSI, 4, 1, 6, 0},
++	{LCD_IF_DSI, 6, 1, 6, 88000000},
  #else
  	{LCD_IF_DSI, 4, 1, 4, 0},
  #endif /*endif DSI_VERSION_40*/

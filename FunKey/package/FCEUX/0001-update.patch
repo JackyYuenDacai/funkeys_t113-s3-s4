@@ -33,13 +33,13 @@ index bf50ff8..8b858e8 100644
  	// scanline settings
  	config->addOption("slstart", "SDL.ScanLineStart", 0);
 -	config->addOption("slend", "SDL.ScanLineEnd", 239);
-+	config->addOption("slend", "SDL.ScanLineEnd", 319);
++	config->addOption("slend", "SDL.ScanLineEnd", 1239);
  
  	// video controls
 -	config->addOption('x', "xres", "SDL.XResolution", 320);
 -	config->addOption('y', "yres", "SDL.YResolution", 240);
-+	config->addOption('x', "xres", "SDL.XResolution", 480);
-+	config->addOption('y', "yres", "SDL.YResolution", 320);
++	config->addOption('x', "xres", "SDL.XResolution", 1080);
++	config->addOption('y', "yres", "SDL.YResolution", 1240);
  	config->addOption('f', "fullscreen", "SDL.Fullscreen", 0);
  	config->addOption('b', "bpp", "SDL.BitsPerPixel", 8);
  	config->addOption("doublebuf", "SDL.DoubleBuffering", 0);
@@ -49,8 +49,8 @@ index bf50ff8..8b858e8 100644
  	for(int i = 0; i < 2; x++) {
 -		if(srendlinev[x]<0 || srendlinev[x]>239) srendlinev[x]=0;
 -		if(erendlinev[x]<srendlinev[x] || erendlinev[x]>239) erendlinev[x]=239;
-+		if(srendlinev[x]<0 || srendlinev[x]>319) srendlinev[x]=0;
-+		if(erendlinev[x]<srendlinev[x] || erendlinev[x]>319) erendlinev[x]=319;
++		if(srendlinev[x]<0 || srendlinev[x]>1239) srendlinev[x]=0;
++		if(erendlinev[x]<srendlinev[x] || erendlinev[x]>1239) erendlinev[x]=1239;
  	}
  #endif
  
@@ -64,7 +64,7 @@ index 142852d..00ecfd0 100644
  		hw_screen = SDL_SetVideoMode(RES_HW_SCREEN_HORIZONTAL, RES_HW_SCREEN_VERTICAL, 16, SDL_HWSURFACE | DINGOO_MULTIBUF);
 -		screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
 +		// screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
-+		screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 480, 320, 16, 0, 0, 0, 0);
++		screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 1080, 1240, 16, 0, 0, 0, 0);
  		s_VideoModeSet = true;
  	}
  
@@ -90,8 +90,8 @@ index 809148f..05a6811 100644
 +// #define RES_HW_SCREEN_VERTICAL 		240
 +// #define RES_HW_SCREEN_HORIZONTAL 	320
 +
-+#define RES_HW_SCREEN_VERTICAL 		320
-+#define RES_HW_SCREEN_HORIZONTAL 	480
++#define RES_HW_SCREEN_VERTICAL 		1080
++#define RES_HW_SCREEN_HORIZONTAL 	1240
  
  uint32 PtoV(uint16 x, uint16 y);
  bool FCEUD_ShouldDrawInputAids();
@@ -104,7 +104,7 @@ index b8d0994..22cdec9 100644
  
  	// create 565 RGB surface
 -	gui_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0xf800, 0x7e0, 0x1f, 0);
-+	gui_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 480, 320, 16, 0xf800, 0x7e0, 0x1f, 0);
++	gui_screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 1080, 1240, 16, 0xf800, 0x7e0, 0x1f, 0);
  	if(!gui_screen) printf("Error creating surface gui\n");
  
  	// Load bg image
@@ -117,7 +117,7 @@ index 65021a8..76274de 100644
  	g_config->getOption("SDL.ScanLineStart", &val);
  
 -	if (key == DINGOO_RIGHT) val = val < 239 ? val+1 : 239;
-+	if (key == DINGOO_RIGHT) val = val < 319 ? val+1 : 319;
++	if (key == DINGOO_RIGHT) val = val < 1239 ? val+1 : 1239;
  	if (key == DINGOO_LEFT) val = val > 0 ? val-1 : 0;
  
  	g_config->setOption("SDL.ScanLineStart", val);
@@ -126,7 +126,7 @@ index 65021a8..76274de 100644
  	g_config->getOption("SDL.ScanLineEnd", &val);
  
 -	if (key == DINGOO_RIGHT) val = val < 239 ? val+1 : 239;
-+	if (key == DINGOO_RIGHT) val = val < 319 ? val+1 : 319;
++	if (key == DINGOO_RIGHT) val = val < 1239 ? val+1 : 1239;
  	if (key == DINGOO_LEFT) val = val > 0 ? val-1 : 0;
  
  	g_config->setOption("SDL.ScanLineEnd", val);
@@ -139,7 +139,7 @@ index eb83264..07c6be7 100644
  	// scanline settings
  	config->addOption("slstart", "SDL.ScanLineStart", 0);
 -	config->addOption("slend", "SDL.ScanLineEnd", 239);
-+	config->addOption("slend", "SDL.ScanLineEnd", 319);
++	config->addOption("slend", "SDL.ScanLineEnd", 1239);
  
  	// video controls
  	config->addOption('f', "fullscreen", "SDL.Fullscreen", 0);
@@ -152,7 +152,7 @@ index 934e946..f6c3948 100644
  						if ( !TextHookerScanline ) TextHookerScanline = 0;
  						if (TextHookerScanline < 0 ) TextHookerScanline = 0;
 -						if (TextHookerScanline > 239) TextHookerScanline = 239;
-+						if (TextHookerScanline > 319) TextHookerScanline = 319;
++						if (TextHookerScanline > 1239) TextHookerScanline = 1239;
  					}
  					
  					//how often are we going to redraw?
@@ -165,7 +165,7 @@ index b07a92a..ad38430 100644
  {
  	{0,0,0,VMDF_DXBLT|VMDF_STRFS,1,1,0},	// Custom - set to current resolution at the first launch
 -	{320,240,8,0,1,1,0}, //1
-+	{480,320,8,0,1,1,0}, //1
++	{1080,1240,8,0,1,1,0}, //1
  	{512,384,8,0,1,1,0}, //2
  	{640,480,32,0,1,1,0}, //3
  	{640,480,32,0,1,1,0}, //4
@@ -174,11 +174,11 @@ index b07a92a..ad38430 100644
  
  
 -				if(erendlinen>239) erendlinen=239;
-+				if(erendlinen>319) erendlinen=319;
++				if(erendlinen>1239) erendlinen=1239;
  				if(srendlinen>erendlinen) srendlinen=erendlinen;
  
 -				if(erendlinep>239) erendlinep=239;
-+				if(erendlinep>319) erendlinep=319;
++				if(erendlinep>1239) erendlinep=1239;
  				if(srendlinep>erendlinen) srendlinep=erendlinep;
  
  				UpdateRendBounds();
@@ -191,7 +191,7 @@ index 7307144..8bc3a54 100644
  		FCEUI_printf("Old PPU loaded");
  	}
 -	normalscanlines = (dendy ? 290 : 240)+newppu; // use flag as number!
-+	normalscanlines = (dendy ? 290 : 320)+newppu; // use flag as number!
++	normalscanlines = (dendy ? 290 : 1240)+newppu; // use flag as number!
  #if defined(WIN32) && !defined(DINGUX)
  	SetMainWindowText();
  #endif
@@ -201,8 +201,8 @@ index 7307144..8bc3a54 100644
  	//FSettings.UsrLastSLine[0]=231;
 -	FSettings.UsrLastSLine[0] = 239;
 -	FSettings.UsrLastSLine[1] = 239;
-+	FSettings.UsrLastSLine[0] = 319;
-+	FSettings.UsrLastSLine[1] = 319;
++	FSettings.UsrLastSLine[0] = 1239;
++	FSettings.UsrLastSLine[1] = 1239;
  	FSettings.SoundVolume = 150;      //0-150 scale
  	FSettings.TriangleVolume = 256;   //0-256 scale (256 is max volume)
  	FSettings.Square1Volume = 256;    //0-256 scale (256 is max volume)
@@ -211,7 +211,7 @@ index 7307144..8bc3a54 100644
  		overclock_enabled = 0;
  
 -	normalscanlines = (dendy ? 290 : 240)+newppu; // use flag as number!
-+	normalscanlines = (dendy ? 290 : 320)+newppu; // use flag as number!
++	normalscanlines = (dendy ? 290 : 1240)+newppu; // use flag as number!
  	totalscanlines = normalscanlines + (overclock_enabled ? postrenderscanlines : 0);
  	FCEUPPU_SetVideoSystem(w || dendy);
  	SetSoundVariables();
@@ -220,7 +220,7 @@ index 7307144..8bc3a54 100644
  	switch (region) {
  		case 0: // NTSC
 -			normalscanlines = 240;
-+			normalscanlines = 320;
++			normalscanlines = 1240;
  			pal_emulation = 0;
  			dendy = 0;
  // until it's fixed on sdl. see issue #740

@@ -1101,31 +1101,31 @@ chn_cfg_mode     : Hardware DE channel allocation config. 0:single display with 
                    display, 2:dual display with 3 channel in main display and 3 channel in second
                    in display.
 ----------------------------------------------------------------------------------*/
+
+
 &disp {
 	disp_init_enable         = <1>;
 	disp_mode                = <0>;
 
 	screen0_output_type      = <1>;
-	screen0_output_mode      = <4>; //Only for hdmi
-	screen0_output_format    = <0>;  //Only for hdmi
-	screen0_output_bits      = <0>;  //Only for hdmi
+	screen0_output_mode      = <4>;
 
-
-	screen1_output_type      = <0>;  //Only for hdmi
-	screen1_output_mode      = <10>;  //Only for hdmi
-	screen1_output_format    = <0>;  //Only for hdmi
-	screen1_output_bits      = <0>;  //Only for hdmi
-	screen1_output_eotf      = <4>;  //Only for hdmi
-	screen1_output_cs        = <257>;  //Only for hdmi
-	screen1_output_range     = <2>;  //Only for hdmi
-	screen1_output_scan      = <0>;  //Only for hdmi
-	screen1_output_aspect_ratio = <8>;  //Only for hdmi
+	screen1_output_type      = <3>;
+	screen1_output_mode      = <4>;
+	
+	screen1_output_format    = <0>;
+	screen1_output_bits      = <0>;
+	screen1_output_eotf      = <4>;
+	screen1_output_cs        = <257>;
+	screen1_output_range     = <2>;
+	screen1_output_scan      = <0>;
+	screen1_output_aspect_ratio = <8>;
 	dev0_output_type         = <1>;
 	dev0_output_mode         = <4>;
 	dev0_screen_id           = <0>;
 	dev0_do_hpd              = <0>;
 
-	dev1_output_type         = <0>;
+	dev1_output_type         = <4>;
 	dev1_output_mode         = <10>;
 	dev1_screen_id           = <1>;
 	dev1_do_hpd              = <1>;
@@ -1133,13 +1133,11 @@ chn_cfg_mode     : Hardware DE channel allocation config. 0:single display with 
 	def_output_dev           = <0>;
 	disp_rotation_used		 = <1>;
 	degree0					 = <0>;
-	hdmi_mode_check          = <1>;
-	
 	fb0_format               = <10>;
 	fb0_buffer_num           = <2>;	
-	//fb0_width                = <1080>;
-	//fb0_height               = <1240>;
-	fb1_format               = <10>;
+	//fb0_width                = <0>;
+	//fb0_height               = <0>;
+	fb1_format               = <9>;
 	fb1_width                = <0>;
 	fb1_height               = <0>;
 	chn_cfg_mode             = <1>;
@@ -1151,7 +1149,9 @@ chn_cfg_mode     : Hardware DE channel allocation config. 0:single display with 
 /*	eldo3-supply = <&reg_eldo3>;*/
 	/*VCC-PD*/
 /*	dcdc1-supply = <&reg_dcdc1>;*/
-};
+}; 
+ 
+ 
 
 /*----------------------------------------------------------------------------------
 ;tv configuration
@@ -1247,11 +1247,11 @@ pull up or pull down(default 0), driver level(default 1), data>
 	lcd_pwm_pol         = <1>;					// 背光 PWM 的极性	
 	//lcd_pwm_max_limit   = <255>;          	// 背光 PWM 的最大值（<=255）
 
-	lcd_hbp             = <40>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
-	lcd_ht              = <1148>;				// 1080+28+4+36 hsync total cycle(pixel)
+	lcd_hbp             = <44>;					// hbp(全志)=hbp(屏)+hs;  hsync back porch(pixel) + hsync plus width(pixel);
+	lcd_ht              = <1164>;				// 1080+28+4+36 hsync total cycle(pixel)
 	lcd_hspw            = <4>;					// hsync plus width(pixel)	
-	lcd_vbp             = <12>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
-	lcd_vt              = <1268>;				// 1240+8+16+4vsync total cycle(line)
+	lcd_vbp             = <24>;					// vbp(全志)=vbp(屏)+vs;  vsync back porch(line) + vysnc plus width(line)
+	lcd_vt              = <1280>;				// 1240+8+16+4vsync total cycle(line)
 	lcd_vspw            = <4>;					// vsync plus width(pixel)
 
 	lcd_dsi_lane        = <4>;

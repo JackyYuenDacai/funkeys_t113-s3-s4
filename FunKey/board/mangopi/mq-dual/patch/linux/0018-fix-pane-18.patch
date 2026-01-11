@@ -1,0 +1,39 @@
+From db257ea4baca7d3f402dfcfdec9ff637e2cc415b Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 02:00:38 +0800
+Subject: [PATCH] fix-pane-18
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+index 132670788..389797d7f 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+@@ -2458,6 +2458,21 @@ s32 fb_init(struct platform_device *pdev)
+ 			fb_para.height = fb_para.output_height;
+ #endif
+ 
++				pr_warn("g_fbi_fbinfo[0]: var.xoffset: %d, var.yoffset: %d, var.xres: %d, var.yres: %d, var.xres_virtual: %d, var.yres_virtual: %d, var.bits_per_pixel: %d\n",
++				i,
++				g_fbi.fbinfo[i]->var.xoffset,
++				g_fbi.fbinfo[i]->var.yoffset,
++				g_fbi.fbinfo[i]->var.xres,
++				g_fbi.fbinfo[i]->var.yres,
++				g_fbi.fbinfo[i]->var.xres_virtual,
++				g_fbi.fbinfo[i]->var.yres_virtual,
++				g_fbi.fbinfo[i]->var.bits_per_pixel);
++			pr_warn("fb%d:  width=%d, height=%d, out_width=%d, out_height=%d, bpp=%d, buf_num=%d\n",
++				i, fb_para.width, fb_para.height,
++				fb_para.output_width,
++				fb_para.output_height,
++				g_fbi.fbinfo[i]->var.bits_per_pixel,
++				fb_para.buffer_num);
+ 			ret = display_fb_request(i, &fb_para);
+ 			if (ret)
+ 				break;
+-- 
+2.34.1
+
