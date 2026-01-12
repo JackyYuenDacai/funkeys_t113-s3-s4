@@ -224,27 +224,25 @@
 	};
 
 	twi2_pins_a: twi2@0 {
-		pins = "PE12", "PE13";
+		pins = "PD20", "PD21";
 		function = "twi2";
 		drive-strength = <10>;
 	};
 
 	twi2_pins_b: twi2@1 {
-		pins = "PE12", "PE13";
+		pins = "PD20", "PD21";
 		function = "gpio_in";
 	};
 
 	twi3_pins_a: twi3@0 {
-		/* pins = "PE16", "PE17"; */
-		/* pins = "PG10", "PG11"; */
+
 		pins = "PB6", "PB7";
 		function = "twi3";
 		drive-strength = <10>;
 	};
 
 	twi3_pins_b: twi3@1 {
-		/* pins = "PE16", "PE17"; */
-		/* pins = "PG10", "PG11"; */
+
 		pins = "PB6", "PB7";
 		function = "gpio_in";
 	};
@@ -273,7 +271,29 @@
 		function = "gpio_in";
 	};
 
+	can0_pins_a: can0_pins_a@0 {
+		pins = "PB2", "PB3";
+		function = "can0";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
 
+	can0_pins_b: can0_pins_b@1 {
+		pins = "PB2", "PB3";
+		function = "gpio_in";
+	};
+
+	can1_pins_a: can1_pins_a@0 {
+		pins = "PB4", "PB5";
+		function = "can1";
+		drive-strength = <10>;
+		bias-pull-up;
+	};
+
+	can1_pins_b: can1_pins_b@1 {
+		pins = "PB4", "PB5";
+		function = "gpio_in";
+	};
 	dmic_pins_a: dmic@0 {
 		/* DMIC_PIN: CLK, DATA0, DATA1, DATA2, DATA3*/
 		pins = "PB12", "PB11", "PB10", "PE14", "PB8";
@@ -550,23 +570,15 @@
 };
 
 &sdc2 {
-	non-removable;
 	bus-width = <4>;
-	mmc-ddr-1_8v;
-	mmc-hs200-1_8v;
+	non-removable;
+	broken-cd;
+	cd-used-24M;
+	cap-sd-highspeed;
 	no-sdio;
-	no-sd;
-	ctl-spec-caps = <0x308>;
-	cap-mmc-highspeed;
 	sunxi-power-save-mode;
-	sunxi-dis-signal-vol-sw;
-	mmc-bootpart-noacc;
 	max-frequency = <150000000>;
-	/*vmmc-supply = <&reg_dcdc1>;*/
-	/*emmc io vol 3.3v*/
-	/*vqmmc-supply = <&reg_aldo1>;*/
-	/*emmc io vol 1.8v*/
-	/*vqmmc-supply = <&reg_eldo1>;*/
+	ctl-spec-caps = <0x8>;
 	status = "disabled";
 };
 
@@ -742,10 +754,58 @@
 	pinctrl-0 = <&twi2_pins_a>;
 	pinctrl-1 = <&twi2_pins_b>;
 	pinctrl-names = "default", "sleep";
-	twi_drv_used = <1>;
-	dmas = <&dma 45>, <&dma 45>;
-	dma-names = "tx", "rx";
-	status = "disabled";
+	//twi_drv_used = <1>;
+	//dmas = <&dma 45>, <&dma 45>;
+	//dma-names = "tx", "rx";
+	status = "okay";
+
+	sw42000_sub: sw42000_sub@28 {
+        status = "okay";
+        compatible = "lge_sub,sw42000_sub";
+        reg = <0x28>;
+
+        irqflags = <IRQ_TYPE_EDGE_FALLING>;
+        reset-gpio = <&pio PD 22 GPIO_ACTIVE_LOW>;
+        irq-gpio = <&pio PB 7 GPIO_ACTIVE_LOW>;
+
+        /* Caps */
+        max_x = <1080>;
+        max_y = <1240>;
+        max_pressure = <0xff>;
+        max_width_major = <1080>;
+        max_width_minor = <1240>;
+        max_orientation = <90>;
+        max_id = <10>;
+        hw_reset_delay = <40>;
+        sw_reset_delay = <40>;
+
+        /* role */
+        use_lpwg = <1>;
+        use_lpwg_test = <1>;
+        hide_coordinate = <1>;
+        use_activepen_status = <0>;
+        use_film_status = <1>;
+        use_dex_mode = <1>;
+
+        /* Firmware */
+        fw_image = "touch/winglm/V1W39WING_v0.18.img";
+        panel_spec = "touch/winglm/wing_sw42000_limit.txt";
+        panel_spec_mfts_folder = "touch/winglm/wing_sw42000_limit.txt";
+		//&pio PD 22 GPIO_ACTIVE_LOW>;
+        /* Performance Test */
+        use_perf_test = <1>;
+        test_delay = <8>;
+        test_pressure = <50>;
+        test_width = <100>;
+        click_test_x = <180>;
+        click_test_y = <838>;
+        v_drag_test_x = <144>;
+        v_drag_test_start_y = <2103>;
+        v_drag_test_end_y = <1216>;
+        h_drag_test_start_x = <1163>;
+        h_drag_test_end_x = <276>;
+        h_drag_test_y = <2284>;
+    };
 };
 
 &twi3 {
@@ -926,21 +986,21 @@
 		power_en;
 		pinctrl-0 = <&wlan_pins_a>;
 		pinctrl-names = "default";
-		status        = "disabled";
+		status        = "okay";
 
 		wlan: wlan@0 {
 			compatible    = "allwinner,sunxi-wlan";
 			clock-names = "32k-fanout1";
 			clocks = <&ccu CLK_FANOUT1_OUT>;
 			wlan_busnum    = <0x1>;
-			wlan_regon    = <&pio PB 7 GPIO_ACTIVE_HIGH>;
+			wlan_regon    = <&pio PG 12 GPIO_ACTIVE_HIGH>;
 			wlan_hostwake  = <&pio PG 10 GPIO_ACTIVE_HIGH>;
 			/*wlan_power    = "VCC-3V3";*/
 			/*wlan_power_vol = <3300000>;*/
 			/*interrupt-parent = <&pio>;
 			interrupts = < PG 10 IRQ_TYPE_LEVEL_HIGH>;*/
 			wakeup-source;
-
+			status        = "okay";
 		};
 
 		bt: bt@0 {
@@ -959,13 +1019,21 @@
 		};
 	};
 
-	// btlpm: btlpm@0 {
-	// 	compatible  = "allwinner,sunxi-btlpm";
-	// 	uart_index  = <0x1>;
-	// 	bt_wake     = <&pio PB 5 GPIO_ACTIVE_HIGH>;
-	// 	bt_hostwake = <&pio PB 4 GPIO_ACTIVE_HIGH>;
-	// 	status      = "okay";
-	// };
+	btlpm: btlpm@0 {
+		compatible  = "allwinner,sunxi-btlpm";
+		uart_index  = <0x1>;
+		bt_wake     = <&pio PG 14 GPIO_ACTIVE_HIGH>;
+		bt_hostwake = <&pio PG 13 GPIO_ACTIVE_HIGH>;
+		status      = "okay";
+	};
+
+	addr_mgt: addr_mgt@0 {
+		compatible     = "allwinner,sunxi-addr_mgt";
+		type_addr_wifi = <0x0>;
+		type_addr_bt   = <0x0>;
+		type_addr_eth  = <0x0>;
+		status         = "okay";
+	};
 };
 
 &vind0 {
@@ -1518,9 +1586,6 @@ VSW
 
 &usbc1 {
 	device_type = "usbc1";
-	usb_port_type = <0x01>;
-	usb_detect_type = <0x2>;
-	usb_regulator_io = "nocare";
 	usb_wakeup_suspend = <0>;
 	status = "okay";
 };
@@ -1578,4 +1643,10 @@ VSW
 	allwinner,filter-type = <0x1>;
 	allwinner,ts-attached;
 	status = "disabled";
+};
+&can1 {
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&can1_pins_a>;
+	pinctrl-1 = <&can1_pins_b>;
+	status = "okay";
 };

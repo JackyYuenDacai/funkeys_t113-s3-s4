@@ -758,68 +758,7 @@
 			status = "okay";
 		};
 
-		sdc2: sdmmc@4022000 {
-			compatible = "allwinner,sunxi-mmc-v4p6x";
-			device_type = "sdc2";
-			reg = <0x0 0x04022000 0x0 0x1000>;
-			interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&dcxo24M>,
-				 <&ccu CLK_PLL_PERIPH0_2X>,
-				 <&ccu CLK_MMC2>,
-				 <&ccu CLK_BUS_MMC2>;
-			clock-names = "osc24m","pll_periph","mmc","ahb";
-			resets = <&ccu RST_BUS_MMC2>;
-			reset-names = "rst";
-			pinctrl-names = "default","sleep";
-			pinctrl-0 = <&sdc2_pins_a>;
-			pinctrl-1 = <&sdc2_pins_b>;
-			bus-width = <4>;
-			req-page-count = <2>;
-			cap-mmc-highspeed;
-			cap-cmd23;
-			mmc-cache-ctrl;
-			non-removable;
-			/*max-frequency = <200000000>;*/
-			max-frequency = <50000000>;
-			cap-erase;
-			mmc-high-capacity-erase-size;
-			no-sdio;
-			no-sd;
-			/*-- speed mode --*/
-			/*sm0: DS26_SDR12*/
-			/*sm1: HSSDR52_SDR25*/
-			/*sm2: HSDDR52_DDR50*/
-			/*sm3: HS200_SDR104*/
-			/*sm4: HS400*/
-			/*-- frequency point --*/
-			/*f0: CLK_400K*/
-			/*f1: CLK_25M*/
-			/*f2: CLK_50M*/
-			/*f3: CLK_100M*/
-			/*f4: CLK_150M*/
-			/*f5: CLK_200M*/
 
-			sdc_tm4_sm0_freq0 = <0>;
-			sdc_tm4_sm0_freq1 = <0>;
-			sdc_tm4_sm1_freq0 = <0x00000000>;
-			sdc_tm4_sm1_freq1 = <0>;
-			sdc_tm4_sm2_freq0 = <0x00000000>;
-			sdc_tm4_sm2_freq1 = <0>;
-			sdc_tm4_sm3_freq0 = <0x05000000>;
-			sdc_tm4_sm3_freq1 = <0x00000005>;
-			sdc_tm4_sm4_freq0 = <0x00050000>;
-			sdc_tm4_sm4_freq1 = <0x00000004>;
-			sdc_tm4_sm4_freq0_cmd = <0>;
-			sdc_tm4_sm4_freq1_cmd = <0>;
-
-			/*vmmc-supply = <&reg_3p3v>;*/
-			/*vqmc-supply = <&reg_3p3v>;*/
-			/*vdmc-supply = <&reg_3p3v>;*/
-			/*vmmc = "vcc-card";*/
-			/*vqmc = "";*/
-			/*vdmc = "";*/
-			/*sunxi-power-save-mode;*/
-		};
 
 		sdc0: sdmmc@4020000 {
 			compatible = "allwinner,sunxi-mmc-v5p3x";
@@ -922,6 +861,68 @@
 			status = "okay";
 		};
 
+		sdc2: sdmmc@4022000 {
+			compatible = "allwinner,sunxi-mmc-v5p3x";
+			device_type = "sdc2";
+			reg = <0x0 0x04022000 0x0 0x1000>;
+			interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&dcxo24M>,
+				 <&ccu CLK_PLL_PERIPH0_2X>,
+				 <&ccu CLK_MMC2>,
+				 <&ccu CLK_BUS_MMC2>;
+			clock-names = "osc24m","pll_periph","mmc","ahb";
+			resets = <&ccu RST_BUS_MMC2>;
+			reset-names = "rst";
+			pinctrl-names = "default","sleep";
+			pinctrl-0 = <&sdc2_pins_a>;
+			pinctrl-1 = <&sdc2_pins_b>;
+			bus-width = <4>;
+			req-page-count = <2>;
+			cap-mmc-highspeed;
+			cap-cmd23;
+			mmc-cache-ctrl;
+			non-removable;
+			/*max-frequency = <200000000>;*/
+			max-frequency = <50000000>;
+			cap-erase;
+			mmc-high-capacity-erase-size;
+			no-sdio;
+			no-sd;
+			/*-- speed mode --*/
+			/*sm0: DS26_SDR12*/
+			/*sm1: HSSDR52_SDR25*/
+			/*sm2: HSDDR52_DDR50*/
+			/*sm3: HS200_SDR104*/
+			/*sm4: HS400*/
+			/*-- frequency point --*/
+			/*f0: CLK_400K*/
+			/*f1: CLK_25M*/
+			/*f2: CLK_50M*/
+			/*f3: CLK_100M*/
+			/*f4: CLK_150M*/
+			/*f5: CLK_200M*/
+
+			sdc_tm4_sm0_freq0 = <0>;
+			sdc_tm4_sm0_freq1 = <0>;
+			sdc_tm4_sm1_freq0 = <0x00000000>;
+			sdc_tm4_sm1_freq1 = <0>;
+			sdc_tm4_sm2_freq0 = <0x00000000>;
+			sdc_tm4_sm2_freq1 = <0>;
+			sdc_tm4_sm3_freq0 = <0x05000000>;
+			sdc_tm4_sm3_freq1 = <0x00000005>;
+			sdc_tm4_sm4_freq0 = <0x00050000>;
+			sdc_tm4_sm4_freq1 = <0x00000004>;
+			sdc_tm4_sm4_freq0_cmd = <0>;
+			sdc_tm4_sm4_freq1_cmd = <0>;
+
+			/*vmmc-supply = <&reg_3p3v>;*/
+			/*vqmc-supply = <&reg_3p3v>;*/
+			/*vdmc-supply = <&reg_3p3v>;*/
+			/*vmmc = "vcc-card";*/
+			/*vqmc = "";*/
+			/*vdmc = "";*/
+			/*sunxi-power-save-mode;*/
+		};
 		rtp:rtp@2009c00 {
 			compatible = "allwinner,sun8i-ts";
 			reg = <0x0 0x02009c00 0x0 0x400>;
@@ -981,7 +982,24 @@
 			    iommus = <&mmu_aw 0 1>;
 			    status = "okay";
 		};
-
+		can0: can@02504000 {
+			compatible = "allwinner,sunxi-t113-can";
+			reg = <0x0 0x02504000 0x0 0x400>;
+			interrupts = <GIC_SPI 21 IRQ_TYPE_LEVEL_HIGH>;// 21+32 =53
+			clocks = <&ccu CLK_BUS_CAN0>;
+			clock-names = "can0";
+			resets = <&ccu RST_BUS_CAN0>;
+			status = "disabled";
+		};
+		can1: can@02504400 {
+			compatible = "allwinner,sunxi-t113-can";
+			reg = <0x0 0x02504400 0x0 0x400>;
+			interrupts = <GIC_SPI 22 IRQ_TYPE_LEVEL_HIGH>;// 22+32 =54
+			clocks = <&ccu CLK_BUS_CAN1>;
+			clock-names = "can1";
+			resets = <&ccu RST_BUS_CAN1>;
+			status = "disabled";
+		};
 		twi0: twi@2502000{
 			#address-cells = <1>;
 			#size-cells = <0>;
