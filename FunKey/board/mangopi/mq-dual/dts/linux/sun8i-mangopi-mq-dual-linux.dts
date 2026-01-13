@@ -33,8 +33,9 @@
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		regulator-enable-ramp-delay = <1000>;
-		gpio = <&pio PB 3 GPIO_ACTIVE_HIGH>;
+		gpio = <&pio PD 12 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
+		regulator-always-on;
 	};
 
 	bat: battery {
