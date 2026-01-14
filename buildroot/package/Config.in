@@ -334,8 +334,10 @@ comment "Graphic libraries"
 	source "package/sdl2_net/Config.in"
 	source "package/sdl2_ttf/Config.in"
 	source "package/tk/Config.in"
+	source "package/libuapi/Config.in"
 
 comment "Other GUIs"
+	source "package/lvgl-8/Config.in"
 	source "package/qt5/Config.in"
 if BR2_PACKAGE_QT5
 comment "QT libraries and helper libraries"
@@ -2020,6 +2022,7 @@ menu "Miscellaneous"
 	source "package/taskd/Config.in"
 	source "package/wine/Config.in"
 	source "package/xutil_util-macros/Config.in"
+	source "package/cmatrix/Config.in"
 endmenu
 
 menu "Networking applications"

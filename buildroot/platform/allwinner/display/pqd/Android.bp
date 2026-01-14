@@ -1,0 +1,43 @@
+cc_binary {
+    name: "pqd",
+    init_rc: ["init.pqd.rc"],
+    cflags: [
+        "-DANDROID_PLT",
+        "-DLOG_TAG=\"Sunxi_PQ\"",
+    ],
+    include_dirs: [
+        "hardware/aw/display/pq/hardwares/de20x/",
+        "hardware/aw/display/pq/hardwares/de20x/fcm/",
+        "hardware/aw/display/pq/hardwares/",
+        "hardware/aw/display/pq/sockets/",
+        "hardware/aw/display/pq/utils/",
+        "hardware/aw/display/pq/pqdata/",
+    ],
+    srcs: [
+        "sockets/socket.c",
+        "sockets/socket_client.c",
+        "utils/helper.c",
+        "utils/cmdqueue.c",
+        "utils/utils.c",
+        "utils/debug.c",
+        "pqdata/pqdata.c",
+        "hardwares/de20x/de20x.c",
+        "hardwares/de20x/fcm/fcm.c",
+        "hardwares/de20x/fcm/constants.c",
+        //"hardwares/de20x/fcm/gen.c",
+        //"hardwares/de20x/fcm/test.c",
+        "hardwares/hardwares.c",
+        "pq_core.c",
+        "pqdaemon.c",
+    ],
+    shared_libs: [
+        "libutils",
+        "liblog",
+    ],
+   vendor: true,
+}
+
+prebuilt_etc {
+    name: "sunxi_pqdata",
+    src: "sunxi_pqdata",
+}

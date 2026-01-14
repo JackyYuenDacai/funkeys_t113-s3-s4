@@ -1,0 +1,5 @@
+config BR2_PACKAGE_LV_EXAMPLES
+	bool "lv_examples"
+	help
+	  mtop for test
+

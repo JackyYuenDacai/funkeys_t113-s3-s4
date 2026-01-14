@@ -1,0 +1,39 @@
+comment "Select Demo And Demo Options"
+
+config LVGL8_USE_SUNXIFB_DOUBLE_BUFFER
+	bool "lvgl-8.1.0 use sunxifb double buffer"
+	default y
+		help
+		Whether use sunxifb double buffer
+config LVGL8_USE_SUNXIFB_CACHE
+		bool "lvgl-8.1.0 use sunxifb cache"
+	select LVGL8_USE_SUNXIFB_DOUBLE_BUFFER
+	default y
+		help
+		Whether use sunxifb cache
+config LVGL8_USE_SUNXIFB_G2D
+	bool "lvgl-8.1.0 use sunxifb g2d"
+	select LVGL8_USE_SUNXIFB_DOUBLE_BUFFER
+	default n
+		help
+		Whether use sunxifb g2d
+	select BR2_PACKAGE_LIBUAPI
+
+config LVGL8_USE_SUNXIFB_G2D_ROTATE
+	bool "lvgl-8.1.0 use sunxifb g2d rotate"
+	select LVGL8_USE_SUNXIFB_G2D
+	default n
+		help
+		Whether use sunxifb g2d rotate
+	select BR2_PACKAGE_LIBUAPI
+
+config LVGL8_USE_FREETYPE
+	bool "lvgl-8.1.0 use freetype"
+	default n
+		help
+		Whether use freetype
+
+comment "Select A Demo"
+source "package/lvgl-8/lv_examples/Config.in"
+source "package/lvgl-8/lv_g2d_test/Config.in"
+

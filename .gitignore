@@ -61,3 +61,16 @@ br.log
 /FunKey/board/funkey/rootfs-overlay/usr/local/share/mnt_files.zip
 
 */ROM/*
+*/ROM/
+FunKey/board/funkey/rootfs-overlay/root/ROM/*
+
+*/*.tar.gz
+*.zip
+*.7z
+*.rar
+*.bin
+*.img
+*.gz
+
+*/gui/qt/*
+buildroot/platform/thirdparty/gui/qt/*

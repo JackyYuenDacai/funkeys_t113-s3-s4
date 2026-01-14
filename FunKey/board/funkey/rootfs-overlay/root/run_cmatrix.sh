@@ -1,0 +1,1 @@
+openvt -c 1  fbterm -s 30 cmatrix

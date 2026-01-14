@@ -1,0 +1,4 @@
+pqd
+build/*
+*.o
+a.out

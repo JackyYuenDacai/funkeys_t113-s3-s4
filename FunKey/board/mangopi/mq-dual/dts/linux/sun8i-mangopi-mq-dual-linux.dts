@@ -553,7 +553,7 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-0 = <&uart1_pins_a>;
 	pinctrl-1 = <&uart1_pins_b>;
-	status = "disabled";
+	status = "okay";
 };
 
 &uart2 {
@@ -865,7 +865,7 @@
 		reg = <0x0>;
 		spi-rx-bus-width = <0x4>;
 		spi-tx-bus-width = <0x4>;
-		status = "okay";
+		status="disabled";
 	};
 };
 
@@ -906,11 +906,11 @@
 	status	= "disabled";
 };
 
-&s_cir0 {
+/*&s_cir0 {
 	pinctrl-names = "default";
 	pinctrl-0 = <&s_cir0_pins_a>;
 	status = "okay";
-};
+};*/
 
 &ir1 {
 	pinctrl-names = "default";
@@ -1006,15 +1006,12 @@
 
 		bt: bt@0 {
 			compatible    = "allwinner,sunxi-bt";
-			pinctrl-0 = <&wlan_pins_a>;
-			pinctrl-names = "default";
 			clock-names = "32k-fanout1";
 			clocks = <&ccu CLK_FANOUT1_OUT>;
 			/*bt_power_num = <0x01>;*/
 			/*bt_power      = "axp803-dldo1";*/
 			/*bt_io_regulator = "axp803-dldo1";*/
 			/*bt_io_vol = <3300000>;*/
-			/*bt_power_vol = <330000>;*/
 			bt_rst_n      = <&pio PG 15 GPIO_ACTIVE_LOW>;
 			status        = "okay";
 		};
@@ -1023,8 +1020,8 @@
 	btlpm: btlpm@0 {
 		compatible  = "allwinner,sunxi-btlpm";
 		uart_index  = <0x1>;
-		bt_wake     = <&pio PG 14 GPIO_ACTIVE_HIGH>;
-		bt_hostwake = <&pio PG 13 GPIO_ACTIVE_HIGH>;
+		bt_wake     = <&pio PG 13 GPIO_ACTIVE_HIGH>;
+		bt_hostwake = <&pio PG 14 GPIO_ACTIVE_HIGH>;
 		status      = "okay";
 	};
 

@@ -1,0 +1,5 @@
+config BR2_PACKAGE_LV_G2D_TEST
+	bool "lv_g2d_test"
+	help
+	  lvgl g2d test use lvgl-8.1.0
+
