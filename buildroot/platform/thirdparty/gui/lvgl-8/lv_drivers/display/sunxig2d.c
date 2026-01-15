@@ -90,7 +90,7 @@ bool sunxifb_g2d_init(uint32_t bits_per_pixel) {
     return true;
 }
 
-void sunxifb_g2d_deinit(void) {
+void sunxifb_g2d_deinit() {
     if (g_g2dfd > 0) {
         close(g_g2dfd);
         g_g2dfd = 0;
