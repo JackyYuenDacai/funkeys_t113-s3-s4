@@ -108,8 +108,22 @@ bool evdev_set_file(char* dev_name)
 void evdev_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
 {
     struct input_event in;
-
+    static int type,code,value;
     while(read(evdev_fd, &in, sizeof(struct input_event)) > 0) {
+        //printf("size of input_event %d", (int)sizeof(struct input_event));
+        //printf("evdev raw: %04x %04x %04x %04x %04x %04x %04x %04x\n", ((unsigned int*)(&in))[0],  
+
+
+        type = *(unsigned short*)(((unsigned char*)(&in)) + 8);
+        code = *(unsigned short*)(((unsigned char*)(&in)) + 10);
+        value =  *(int*)(((unsigned char*)(&in)) + 12);
+
+        in.type = type;
+        in.code = code;
+        in.value = value;
+
+        //printf("evdev_read fixed: type %d, code %d, value %d\n", type, code, value);
+        //printf("evdev_read: type %d, code %d, value %d\n", in.type, in.code, in.value);
         if(in.type == EV_REL) {
             if(in.code == REL_X)
 				#if EVDEV_SWAP_AXES
