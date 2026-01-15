@@ -1,0 +1,43 @@
+From 4e32649374c0be28cced732fafeeb54707fdbe40 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 02:33:35 +0800
+Subject: [PATCH 19/31] fix-pane-21
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c | 19 +++++++++++++++++--
+ 1 file changed, 17 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+index c92809fbf..e05ec379c 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+@@ -2473,8 +2473,23 @@ s32 fb_init(struct platform_device *pdev)
+ 				fb_para.output_height,
+ 				g_fbi.fbinfo[i]->var.bits_per_pixel,
+ 				fb_para.buffer_num);
+-			g_fbi.fbinfo[i]->var.bits_per_pixel = 24;
+-			//fb_para.bpp = 24;
++			g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
++		g_fbi.fbinfo[i]->var.xoffset = 0;
++		g_fbi.fbinfo[i]->var.yoffset = 0;
++		g_fbi.fbinfo[i]->var.xres = 1080;
++		g_fbi.fbinfo[i]->var.yres = 1240;
++		g_fbi.fbinfo[i]->var.xres_virtual = 1080;
++		g_fbi.fbinfo[i]->var.yres_virtual = 1240 * 2;
++		g_fbi.fbinfo[i]->var.nonstd = 0;
++		g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
++		g_fbi.fbinfo[i]->var.transp.length = 8;
++		g_fbi.fbinfo[i]->var.red.length = 8;
++		g_fbi.fbinfo[i]->var.green.length = 8;
++		g_fbi.fbinfo[i]->var.blue.length = 8;
++		g_fbi.fbinfo[i]->var.transp.offset = 24;
++		g_fbi.fbinfo[i]->var.red.offset = 16;
++		g_fbi.fbinfo[i]->var.green.offset = 8;
++		g_fbi.fbinfo[i]->var.blue.offset = 0;
+ 			ret = display_fb_request(i, &fb_para);
+ 			if (ret)
+ 				break;
+-- 
+2.34.1
+

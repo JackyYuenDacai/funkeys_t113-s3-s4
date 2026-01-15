@@ -1,0 +1,648 @@
+From cfc09a74f0ea9013001081ce0b05cf6491f707d7 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Mon, 12 Jan 2026 01:10:26 +0800
+Subject: [PATCH 25/31] add-lge-touchscreen-driver-2
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ include/linux/input/lge_touch_module.h     | 234 +++++++++++++++++++++
+ include/linux/input/lge_touch_notify.h     |  62 ++++++
+ include/linux/input/lge_touch_sub_module.h | 234 +++++++++++++++++++++
+ include/linux/input/lge_touch_sub_notify.h |  60 ++++++
+ include/uapi/linux/input-event-codes.h     |   2 +-
+ 5 files changed, 591 insertions(+), 1 deletion(-)
+ create mode 100644 include/linux/input/lge_touch_module.h
+ create mode 100644 include/linux/input/lge_touch_notify.h
+ create mode 100644 include/linux/input/lge_touch_sub_module.h
+ create mode 100644 include/linux/input/lge_touch_sub_notify.h
+
+diff --git a/include/linux/input/lge_touch_module.h b/include/linux/input/lge_touch_module.h
+new file mode 100644
+index 000000000..e5a000511
+--- /dev/null
++++ b/include/linux/input/lge_touch_module.h
+@@ -0,0 +1,234 @@
++#ifndef __LINUX_TOUCH_MODULE_H
++#define __LINUX_TOUCH_MODULE_H
++
++#include <linux/kobject.h>
++#include <linux/platform_device.h>
++#include <linux/pm_qos.h>
++
++#define MAX_FINGER		10
++
++#define TOUCH_MODULE_IRQ_NONE		0
++#define TOUCH_MODULE_IRQ_FINGER		(1 << 0)
++#define TOUCH_MODULE_IRQ_KNOCK		(1 << 1)
++
++#define EUPGRADE		140
++#define EHWRESET_ASYNC		141
++#define EHWRESET_SYNC		142
++#define ESWRESET		143
++#define EGLOBALRESET		144
++
++enum {
++	MAIN = 0,
++	SW49106,
++	FT3518,
++	S3706,
++	PEN_DRIVER,
++	PDEV_MAX,
++};
++
++enum {
++	MODULE_POWER_OFF = 0,
++	MODULE_POWER_SLEEP,
++	MODULE_POWER_WAKE,
++	MODULE_POWER_ON,
++	MODULE_POWER_HW_RESET_ASYNC,
++	MODULE_POWER_HW_RESET_SYNC,
++	MODULE_POWER_SW_RESET,
++	MODULE_POWER_DSV_TOGGLE,
++	MODULE_POWER_DSV_ALWAYS_ON,
++};
++
++enum {
++	MODULE_FIRMWARE_UPGRADE = 0,
++};
++
++enum {
++	DONE = 0,
++	WAIT = 1,
++};
++
++enum {
++	MODULE_NONE = 0,
++	MODULE_PROBE,
++	MODULE_UPGRADE,
++	MODULE_NORMAL,
++};
++
++enum {
++	FIRMWARE_UPGRADE_NOT_INITIALIZED = -1,
++	FIRMWARE_UPGRADE_NO_NEED = 0,
++	FIRMWARE_UPGRADE_NEED = 1,
++	FIRMWARE_UPGRADE_DONE = 2,
++	FIRMWARE_UPGRADE_FORCE = 3,
++	FIRMWARE_UPGRADE_FAIL = 4,
++};
++
++enum {
++	MODULE_INTERRUPT_DISABLE = 0,
++	MODULE_INTERRUPT_ENABLE,
++};
++
++struct module_bus_msg {
++	u8 *tx_buf;
++	int tx_size;
++	u8 *rx_buf;
++	int rx_size;
++};
++
++ /*
++  * struct for module device.
++  * */
++struct p_driver {
++	int (*match)(struct device *dev);
++	int (*probe)(struct device *dev);
++	int (*remove)(struct device *dev);
++	int (*func)(struct device *dev, void *touch_core_data, void *data, int control);
++	int (*notify)(int control, int data);
++	int (*write)(struct device *dev, struct module_bus_msg *msg);
++	int (*read)(struct device *dev, struct module_bus_msg *msg);
++	int (*suspend)(struct device *dev);
++	int (*resume)(struct device *dev);
++	int (*init)(struct device *dev);
++	int (*upgrade)(struct device *dev);
++	int (*lpwg)(struct device *dev, u32 code, void *param);
++	int (*register_sysfs)(struct device *dev);
++	void (*write_file)(struct device *dev, char *data, int write_time);
++	void (*log_file_size_check)(struct device *dev);
++};
++
++struct dts_data {
++	u32 reset_pin;
++	u32 int_pin;
++	u32 irqflags;
++	u32 max_x;
++	u32 max_y;
++	u32 max_pressure;
++	u32 max_width_major;
++	u32 max_width_minor;
++	u32 max_orientation;
++	u32 max_id;
++	u32 hw_reset_delay;
++	u32 sw_reset_delay;
++	u32 vcl_pin;
++	u32 vdd_pin;
++
++	u8 def_fwcnt;
++	const char *def_fwpath[4];
++	const char *panel_spec;
++	const char *panel_spec_mfts;
++};
++
++struct module_pinctrl {
++	struct pinctrl *ctrl;
++	struct pinctrl_state *active;
++	struct pinctrl_state *suspend;
++};
++
++struct touch_data_module {
++	u16 id;
++	u16 x;
++	u16 y;
++	u16 width_major;
++	u16 width_minor;
++	s16 orientation;
++	u16 pressure;
++	/* finger, palm, pen, glove, hover */
++	u16 type;
++};
++
++struct m_point {
++	int x;
++	int y;
++};
++
++struct m_lpwg_info {
++	u8 mode;
++	u8 screen;
++	u8 sensor;
++	u8 qcover;
++	u8 code_num;
++	struct m_point area[2];
++	struct m_point code[128];
++};
++
++/* data struct communicating with touch_core*/
++struct module_data {
++	u8 bus_type;
++	int irq;
++
++	struct platform_device *pdev;
++	struct device *dev;			/* client device : i2c or spi */
++	struct input_dev *input;
++	struct p_driver m_driver;
++	struct kobject kobj;
++
++	struct dts_data dts;
++	struct module_pinctrl pinctrl;
++	struct mutex io_lock;
++	struct mutex lock;
++
++	struct pm_qos_request pm_qos_req;
++	struct workqueue_struct *wq;
++	struct delayed_work init_work;
++	struct delayed_work upgrade_work;
++	struct delayed_work debug_work;
++	u8 *tx_buf;
++	u8 *rx_buf;
++	void *vcl;
++	void *vdd;
++
++	u32 intr_status;
++	u16 new_mask;
++	u16 old_mask;
++	const char *module_name;
++	const char *def_fwpath[4];
++	char test_fwpath[256];
++
++	const char *panel_spec;
++	const char *panel_spec_mfts;
++
++	atomic_t core;
++	atomic_t irq_enable;
++
++	int tcount;
++	struct touch_data_module tdata[MAX_FINGER];
++	struct m_lpwg_info lpwg;
++	void *module_device_data;
++	int is_cancel;
++	u8 force_fwup;
++	int check_fwup;
++//	struct lpwg_info lpwg;
++//	struct tci_ctrl tci;
++//	struct swipe_ctrl swipe[4];	/*down, up, right, left */
++};
++
++struct pdev_list {
++	struct device *sub_dev[10];
++	void *touch_core_data;
++	/* add?? */
++};
++extern struct pdev_list *plist;
++
++#ifdef CONFIG_LGE_DD_TEMP_BRINGUP
++extern void notify_touch_version_check(int state);
++#endif
++
++static inline void module_set_device(struct module_data *md, void *data)
++{
++	md->module_device_data = data;
++}
++
++static inline void *module_get_device(struct module_data *md)
++{
++	return md->module_device_data;
++}
++
++static inline struct module_data *to_module(struct device *dev)
++{
++	if (dev == NULL)
++		return NULL;
++
++	return (struct module_data *)dev_get_drvdata(dev);
++}
++
++#endif /* _LINUX_TOUCH_MODULE_H */
+diff --git a/include/linux/input/lge_touch_notify.h b/include/linux/input/lge_touch_notify.h
+new file mode 100644
+index 000000000..43828ae31
+--- /dev/null
++++ b/include/linux/input/lge_touch_notify.h
+@@ -0,0 +1,62 @@
++#ifndef __LINUX_TOUCH_NOTIFY_H
++#define __LINUX_TOUCH_NOTIFY_H
++
++#include <linux/notifier.h>
++
++#define NOTIFY_NO_EVENT			0x00
++#define NOTIFY_TOUCH_RESET		0x01
++#define NOTIFY_CONNECTION		0x02
++#define NOTIFY_WIRELESS			0x03
++#define NOTIFY_IME_STATE		0x04
++#define NOTIFY_DEBUG_TOOL		0x05
++#define NOTIFY_CALL_STATE		0x06
++#define NOTIFY_FB			0x07
++#define NOTIFY_EARJACK			0x08
++#define NOTIFY_DEBUG_OPTION		0x09
++#define NOTIFY_ONHAND_STATE		0x0A
++#define NOTIFY_QMEMO_STATE		0x0B
++#define NOTIFY_PMEMO_STATE		0x0C
++#define NOTIFY_FILM_STATE		0x0D
++#define NOTIFY_ACTIVE_PEN_STATE		0x0E
++#define NOTIFY_DUALSCREEN_STATE         0x0F
++#define NOTIFY_FM_RADIO		        0x10
++#define NOTIFY_SWIVEL		        0x11
++
++#define LCD_EVENT_LCD_MODE		0xD0
++#define LCD_EVENT_READ_REG		0xD1
++#define LCD_EVENT_TOUCH_RESET_START	0xD2
++#define LCD_EVENT_TOUCH_RESET_END	0xD3
++#define LCD_EVENT_LCD_BLANK		0xD4
++#define LCD_EVENT_LCD_UNBLANK		0xD5
++#define LCD_EVENT_TOUCH_LPWG_ON		0xD6
++#define LCD_EVENT_TOUCH_LPWG_OFF	0xD7
++
++enum {
++	ATOMIC_NOTIFY_CONNECTION = 0,
++	ATOMIC_NOTIFY_WIRELESS,
++	ATOMIC_NOTIFY_EARJACK,
++	ATOMIC_NOTIFY_FM_RADIO,
++	ATOMIC_NOTIFY_SWIVEL,
++	ATOMIC_NOTIFY_EVENT_SIZE,
++};
++
++struct atomic_notify_event {
++	unsigned long event;
++	int data;
++};
++
++int touch_blocking_notifier_register(struct notifier_block *nb);
++int touch_blocking_notifier_unregister(struct notifier_block *nb);
++int touch_blocking_notifier_call(unsigned long val, void *v);
++
++int touch_atomic_notifier_register(struct notifier_block *nb);
++int touch_atomic_notifier_unregister(struct notifier_block *nb);
++int touch_atomic_notifier_call(unsigned long val, void *v);
++
++int touch_register_client(struct notifier_block *nb);
++int touch_unregister_client(struct notifier_block *nb);
++int touch_notifier_call_chain(unsigned long val, void *v);
++
++extern int ignore_compared_event;
++
++#endif /* _LINUX_TOUCH_NOTIFY_H */
+diff --git a/include/linux/input/lge_touch_sub_module.h b/include/linux/input/lge_touch_sub_module.h
+new file mode 100644
+index 000000000..f076a98bd
+--- /dev/null
++++ b/include/linux/input/lge_touch_sub_module.h
+@@ -0,0 +1,234 @@
++#ifndef __LINUX_TOUCH_MODULE_H
++#define __LINUX_TOUCH_MODULE_H
++
++#include <linux/kobject.h>
++#include <linux/platform_device.h>
++#include <linux/pm_qos.h>
++
++#define MAX_FINGER		10
++
++#define TOUCH_MODULE_IRQ_NONE		0
++#define TOUCH_MODULE_IRQ_FINGER		(1 << 0)
++#define TOUCH_MODULE_IRQ_KNOCK		(1 << 1)
++
++#define EUPGRADE		140
++#define EHWRESET_ASYNC		141
++#define EHWRESET_SYNC		142
++#define ESWRESET		143
++#define EGLOBALRESET		144
++
++enum {
++	MAIN = 0,
++	SW49106,
++	FT3518,
++	S3706,
++	PEN_DRIVER,
++	PDEV_MAX,
++};
++
++enum {
++	MODULE_POWER_OFF = 0,
++	MODULE_POWER_SLEEP,
++	MODULE_POWER_WAKE,
++	MODULE_POWER_ON,
++	MODULE_POWER_HW_RESET_ASYNC,
++	MODULE_POWER_HW_RESET_SYNC,
++	MODULE_POWER_SW_RESET,
++	MODULE_POWER_DSV_TOGGLE,
++	MODULE_POWER_DSV_ALWAYS_ON,
++};
++
++enum {
++	MODULE_FIRMWARE_UPGRADE = 0,
++};
++
++enum {
++	DONE = 0,
++	WAIT = 1,
++};
++
++enum {
++	MODULE_NONE = 0,
++	MODULE_PROBE,
++	MODULE_UPGRADE,
++	MODULE_NORMAL,
++};
++
++enum {
++	FIRMWARE_UPGRADE_NOT_INITIALIZED = -1,
++	FIRMWARE_UPGRADE_NO_NEED = 0,
++	FIRMWARE_UPGRADE_NEED = 1,
++	FIRMWARE_UPGRADE_DONE = 2,
++	FIRMWARE_UPGRADE_FORCE = 3,
++	FIRMWARE_UPGRADE_FAIL = 4,
++};
++
++enum {
++	MODULE_INTERRUPT_DISABLE = 0,
++	MODULE_INTERRUPT_ENABLE,
++};
++
++struct module_bus_msg {
++	u8 *tx_buf;
++	int tx_size;
++	u8 *rx_buf;
++	int rx_size;
++};
++
++ /*
++  * struct for module device.
++  * */
++struct p_driver {
++	int (*match)(struct device *dev);
++	int (*probe)(struct device *dev);
++	int (*remove)(struct device *dev);
++	int (*func)(struct device *dev, void *touch_sub_core_data, void *data, int control);
++	int (*notify)(int control, int data);
++	int (*write)(struct device *dev, struct module_bus_msg *msg);
++	int (*read)(struct device *dev, struct module_bus_msg *msg);
++	int (*suspend)(struct device *dev);
++	int (*resume)(struct device *dev);
++	int (*init)(struct device *dev);
++	int (*upgrade)(struct device *dev);
++	int (*lpwg)(struct device *dev, u32 code, void *param);
++	int (*register_sysfs)(struct device *dev);
++	void (*write_file)(struct device *dev, char *data, int write_time);
++	void (*log_file_size_check)(struct device *dev);
++};
++
++struct dts_data {
++	u32 reset_pin;
++	u32 int_pin;
++	u32 irqflags;
++	u32 max_x;
++	u32 max_y;
++	u32 max_pressure;
++	u32 max_width_major;
++	u32 max_width_minor;
++	u32 max_orientation;
++	u32 max_id;
++	u32 hw_reset_delay;
++	u32 sw_reset_delay;
++	u32 vcl_pin;
++	u32 vdd_pin;
++
++	u8 def_fwcnt;
++	const char *def_fwpath[4];
++	const char *panel_spec;
++	const char *panel_spec_mfts;
++};
++
++struct module_pinctrl {
++	struct pinctrl *ctrl;
++	struct pinctrl_state *active;
++	struct pinctrl_state *suspend;
++};
++
++struct touch_sub_data_module {
++	u16 id;
++	u16 x;
++	u16 y;
++	u16 width_major;
++	u16 width_minor;
++	s16 orientation;
++	u16 pressure;
++	/* finger, palm, pen, glove, hover */
++	u16 type;
++};
++
++struct m_point {
++	int x;
++	int y;
++};
++
++struct m_lpwg_info {
++	u8 mode;
++	u8 screen;
++	u8 sensor;
++	u8 qcover;
++	u8 code_num;
++	struct m_point area[2];
++	struct m_point code[128];
++};
++
++/* data struct communicating with touch_sub_core*/
++struct module_data {
++	u8 bus_type;
++	int irq;
++
++	struct platform_device *pdev;
++	struct device *dev;			/* client device : i2c or spi */
++	struct input_dev *input;
++	struct p_driver m_driver;
++	struct kobject kobj;
++
++	struct dts_data dts;
++	struct module_pinctrl pinctrl;
++	struct mutex io_lock;
++	struct mutex lock;
++
++	struct pm_qos_request pm_qos_req;
++	struct workqueue_struct *wq;
++	struct delayed_work init_work;
++	struct delayed_work upgrade_work;
++	struct delayed_work debug_work;
++	u8 *tx_buf;
++	u8 *rx_buf;
++	void *vcl;
++	void *vdd;
++
++	u32 intr_status;
++	u16 new_mask;
++	u16 old_mask;
++	const char *module_name;
++	const char *def_fwpath[4];
++	char test_fwpath[256];
++
++	const char *panel_spec;
++	const char *panel_spec_mfts;
++
++	atomic_t core;
++	atomic_t irq_enable;
++
++	int tcount;
++	struct touch_sub_data_module tdata[MAX_FINGER];
++	struct m_lpwg_info lpwg;
++	void *module_device_data;
++	int is_cancel;
++	u8 force_fwup;
++	int check_fwup;
++//	struct lpwg_info lpwg;
++//	struct tci_ctrl tci;
++//	struct swipe_ctrl swipe[4];	/*down, up, right, left */
++};
++
++struct pdev_list {
++	struct device *sub_dev[10];
++	void *touch_sub_core_data;
++	/* add?? */
++};
++extern struct pdev_list *plist_sub;
++
++#ifdef CONFIG_LGE_DD_TEMP_BRINGUP
++extern void notify_touch_sub_version_check(int state);
++#endif
++
++static inline void module_set_device(struct module_data *md, void *data)
++{
++	md->module_device_data = data;
++}
++
++static inline void *module_get_device(struct module_data *md)
++{
++	return md->module_device_data;
++}
++
++static inline struct module_data *to_module(struct device *dev)
++{
++	if (dev == NULL)
++		return NULL;
++
++	return (struct module_data *)dev_get_drvdata(dev);
++}
++
++#endif /* _LINUX_TOUCH_MODULE_H */
+diff --git a/include/linux/input/lge_touch_sub_notify.h b/include/linux/input/lge_touch_sub_notify.h
+new file mode 100644
+index 000000000..6b61eda43
+--- /dev/null
++++ b/include/linux/input/lge_touch_sub_notify.h
+@@ -0,0 +1,60 @@
++#ifndef __LINUX_TOUCH_NOTIFY_H
++#define __LINUX_TOUCH_NOTIFY_H
++
++#include <linux/notifier.h>
++
++#define NOTIFY_NO_EVENT			0x00
++#define NOTIFY_TOUCH_RESET		0x01
++#define NOTIFY_CONNECTION		0x02
++#define NOTIFY_WIRELESS			0x03
++#define NOTIFY_IME_STATE		0x04
++#define NOTIFY_DEBUG_TOOL		0x05
++#define NOTIFY_CALL_STATE		0x06
++#define NOTIFY_FB			0x07
++#define NOTIFY_EARJACK			0x08
++#define NOTIFY_DEBUG_OPTION		0x09
++#define NOTIFY_ONHAND_STATE		0x0A
++#define NOTIFY_QMEMO_STATE		0x0B
++#define NOTIFY_PMEMO_STATE		0x0C
++#define NOTIFY_FILM_STATE		0x0D
++#define NOTIFY_ACTIVE_PEN_STATE		0x0E
++#define NOTIFY_DUALSCREEN_STATE         0x0F
++#define NOTIFY_FM_RADIO		        0x10
++#define NOTIFY_SWIVEL		        0x11
++
++#define LCD_EVENT_LCD_MODE		0xD0
++#define LCD_EVENT_READ_REG		0xD1
++#define LCD_EVENT_TOUCH_RESET_START	0xD2
++#define LCD_EVENT_TOUCH_RESET_END	0xD3
++#define LCD_EVENT_LCD_BLANK		0xD4
++#define LCD_EVENT_LCD_UNBLANK		0xD5
++#define LCD_EVENT_TOUCH_LPWG_ON		0xD6
++#define LCD_EVENT_TOUCH_LPWG_OFF	0xD7
++
++enum {
++	ATOMIC_NOTIFY_CONNECTION = 0,
++	ATOMIC_NOTIFY_WIRELESS,
++	ATOMIC_NOTIFY_EARJACK,
++	ATOMIC_NOTIFY_FM_RADIO,
++	ATOMIC_NOTIFY_SWIVEL,
++	ATOMIC_NOTIFY_EVENT_SIZE,
++};
++
++struct atomic_notify_event {
++	unsigned long event;
++	int data;
++};
++
++int touch_sub_blocking_notifier_register(struct notifier_block *nb);
++int touch_sub_blocking_notifier_unregister(struct notifier_block *nb);
++int touch_sub_blocking_notifier_call(unsigned long val, void *v);
++
++int touch_sub_atomic_notifier_register(struct notifier_block *nb);
++int touch_sub_atomic_notifier_unregister(struct notifier_block *nb);
++int touch_sub_atomic_notifier_call(unsigned long val, void *v);
++
++int touch_sub_register_client(struct notifier_block *nb);
++int touch_sub_unregister_client(struct notifier_block *nb);
++int touch_sub_notifier_call_chain(unsigned long val, void *v);
++
++#endif /* _LINUX_TOUCH_NOTIFY_H */
+diff --git a/include/uapi/linux/input-event-codes.h b/include/uapi/linux/input-event-codes.h
+index b8902770a..d6f8db913 100644
+--- a/include/uapi/linux/input-event-codes.h
++++ b/include/uapi/linux/input-event-codes.h
+@@ -418,7 +418,7 @@
+ #define BTN_WHEEL		0x150
+ #define BTN_GEAR_DOWN		0x150
+ #define BTN_GEAR_UP		0x151
+-
++#define BTN_LPWG		0x152
+ #define KEY_OK			0x160
+ #define KEY_SELECT		0x161
+ #define KEY_GOTO		0x162
+-- 
+2.34.1
+

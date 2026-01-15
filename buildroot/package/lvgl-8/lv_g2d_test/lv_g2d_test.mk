@@ -1,5 +1,5 @@
 LV_G2D_TEST_SITE_METHOD = local
-LV_G2D_TEST_SITE = ../../platform/thirdparty/gui/lvgl-8/lv_g2d_test
+LV_G2D_TEST_SITE = platform/thirdparty/gui/lvgl-8/lv_g2d_test
 LV_G2D_TEST_LICENSE = GPLv2+, GPLv3+
 LV_G2D_TEST_LICENSE_FILES = Copyright COPYING
 LV_G2D_TEST_DEPENDENCIES += $(if $(LVGL8_USE_SUNXIFB_G2D),libuapi,)
@@ -17,7 +17,7 @@ define LV_G2D_TEST_BUILD_CMDS
 	cp -r $(LV_G2D_TEST_SITE)/../lvgl $(@D)/src/
 	cp -r $(LV_G2D_TEST_SITE)/res $(@D)/
 	cp -r $(LV_G2D_TEST_SITE)/../lv_drivers $(@D)/src/
-	cp -r $(LV_G2D_TEST_SITE)/../lv_demos $(@D)/src
+	cp -r $(LV_G2D_TEST_SITE)/../lvgl/demos $(@D)/src
 	make  -C $(@D)/src\
 		ARCH="$(TARGET_ARCH)" \
 		AR="$(TARGET_AR)" \

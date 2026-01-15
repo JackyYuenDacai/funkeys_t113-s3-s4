@@ -1,0 +1,2681 @@
+From d69c99809edc67eea3b28ae7d4011249cae6cdfe Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 15:48:44 +0800
+Subject: [PATCH] sunxi g2d driver-patch-2
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ .../fbdev/sunxi/disp2/disp/de/disp_display.c  | 406 +-----------------
+ .../fbdev/sunxi/disp2/disp/de/disp_display.h  |   7 -
+ .../fbdev/sunxi/disp2/disp/de/disp_enhance.c  |   2 +-
+ .../fbdev/sunxi/disp2/disp/de/disp_lcd.c      | 166 ++++---
+ .../fbdev/sunxi/disp2/disp/de/disp_manager.c  | 242 ++++++++---
+ .../fbdev/sunxi/disp2/disp/de/disp_manager.h  |   1 +
+ .../video/fbdev/sunxi/disp2/disp/de/include.h |  18 +
+ .../disp2/disp/de/lowlevel_sun50iw1/disp_al.c |   4 +-
+ .../disp2/disp/de/lowlevel_v2x/de_dcsc.c      |   5 +-
+ .../sunxi/disp2/disp/de/lowlevel_v2x/de_dsi.c |  21 +-
+ .../disp2/disp/de/lowlevel_v2x/de_enhance.h   |   3 +
+ .../disp2/disp/de/lowlevel_v2x/de_feat.c      |   2 +-
+ .../sunxi/disp2/disp/de/lowlevel_v2x/de_hal.c |  10 +-
+ .../disp/de/lowlevel_v2x/de_lcd_sun50iw10.c   | 117 +----
+ .../sunxi/disp2/disp/de/lowlevel_v2x/de_lti.c |  13 +
+ .../disp2/disp/de/lowlevel_v2x/de_peak.c      |  32 ++
+ .../disp2/disp/de/lowlevel_v2x/de_peak_type.h |  13 +
+ .../disp2/disp/de/lowlevel_v2x/de_rtmx.c      |  18 +-
+ .../disp2/disp/de/lowlevel_v2x/de_rtmx.h      |   1 +
+ .../disp2/disp/de/lowlevel_v2x/de_vep_table.c |  41 ++
+ .../disp2/disp/de/lowlevel_v2x/disp_al.c      | 150 ++-----
+ .../disp2/disp/de/lowlevel_v2x/disp_al.h      |  11 +-
+ .../video/fbdev/sunxi/disp2/disp/pq/drv_pq.c  | 172 ++++++++
+ .../video/fbdev/sunxi/disp2/disp/pq/drv_pq.h  |  97 +++++
+ .../fbdev/sunxi/disp2/disp/pq/pq_common.c     |  72 ++++
+ 25 files changed, 821 insertions(+), 803 deletions(-)
+ create mode 100644 drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.c
+ create mode 100644 drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.h
+ create mode 100644 drivers/video/fbdev/sunxi/disp2/disp/pq/pq_common.c
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+index 751597bb9..696cdd3aa 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+@@ -17,7 +17,7 @@
+ #include "disp_display.h"
+ #include "disp_rtwb.h"
+ #include "../disp_trace.h"
+-#include <linux/pm_runtime.h>
++
+ struct disp_dev_t gdisp;
+ 
+ s32 bsp_disp_init(struct disp_bsp_init_para *para)
+@@ -35,15 +35,13 @@ s32 bsp_disp_init(struct disp_bsp_init_para *para)
+ 		tasklet_init(&gdisp.screen[disp].tasklet, disp_tasklet,
+ 			     (unsigned long)disp);
+ 	}
+-	printk("bsp_disp_init start\n");
++
+ 	disp_init_al(para);
+ #if defined (DE_VERSION_V33X)
+ 	disp_al_init_tcon(para);
+ #endif
+ 	disp_init_lcd(para);
+-#if defined(SUPPORT_HDMI)
+-	disp_init_hdmi(para);
+-#endif
++
+ #if defined(SUPPORT_TV)
+ 	disp_init_tv_para(para);
+ #endif
+@@ -103,10 +101,6 @@ s32 bsp_disp_exit(u32 mode)
+ 	disp_exit_enhance();
+ #endif
+ 	disp_exit_mgr();
+-#if defined(SUPPORT_HDMI)
+-	disp_exit_hdmi();
+-#endif
+-
+ #if defined(SUPPORT_VDPO)
+ 	disp_exit_vdpo();
+ #endif
+@@ -171,8 +165,7 @@ s32 disp_device_attached_and_enable(int disp_mgr, int disp_dev,
+ 	struct disp_manager *mgr = NULL;
+ 	struct disp_device *dispdev = NULL;
+ 	int ret = 0;
+-	printk("[DEBUG] disp_device_attached_and_enable disp_mgr=%d, disp_dev=%d, type=%d\n",
+-	       disp_mgr, disp_dev, config->type);
++
+ 	mgr = disp_get_layer_manager(disp_mgr);
+ 	if (!mgr)
+ 		return -1;
+@@ -227,17 +220,11 @@ s32 disp_device_attached_and_enable(int disp_mgr, int disp_dev,
+ 			if (config->type == DISP_OUTPUT_TYPE_TV)
+ 				disp_delay_ms(300);
+ 
+-			if (config->type == DISP_OUTPUT_TYPE_HDMI)
+-				disp_delay_ms(1000);
+-
+ 			ret = mgr->device->enable(mgr->device);
+ 			DE_WRN("attached %s, mgr%d<-->dev%d\n",
+ 				(ret == 0) ? "ok" : "fail",
+ 				disp_mgr, disp_dev);
+-			printk("[DEBUG] attached %s, mgr%d<-->dev%d\n",
+-				(ret == 0) ? "ok" : "fail",
+-				disp_mgr, disp_dev);
+-			DE_WRN("type:%d,mode:%d,fmt:%s,bits:%s,eotf:%d,cs:%d dvi_hdmi:%d, range:%d scan:%d ratio:%d\n",
++			DE_WRN("type:%d,mode:%d,fmt:%s,bits:%s,eotf:%d,cs:%d dvi:%d, range:%d scan:%d ratio:%d\n",
+ 				config->type,
+ 				config->mode,
+ 				(config->format < 4) ?
+@@ -246,7 +233,6 @@ s32 disp_device_attached_and_enable(int disp_mgr, int disp_dev,
+ 				    bits_name[config->bits] : "undef",
+ 				config->eotf,
+ 				config->cs,
+-				config->dvi_hdmi,
+ 				config->range,
+ 				config->scan,
+ 				config->aspect_ratio);
+@@ -313,16 +299,6 @@ s32 bsp_disp_device_switch(int disp, enum disp_output_type output_type,
+ 	config.bits = DISP_DATA_8BITS;
+ 	config.eotf = DISP_EOTF_GAMMA22;
+ 
+-	if (config.type == DISP_OUTPUT_TYPE_HDMI) {
+-		if (config.mode >= DISP_TV_MOD_720P_50HZ)
+-			config.cs = DISP_BT709;
+-		else
+-			config.cs = DISP_BT601;
+-
+-		config.eotf = DISP_EOTF_GAMMA22;
+-	}
+-
+-	config.dvi_hdmi = DISP_HDMI;
+ 	config.range = DISP_COLOR_RANGE_16_235;
+ 	config.scan = DISP_SCANINFO_NO_DATA;
+ 	config.aspect_ratio = 8;
+@@ -348,24 +324,12 @@ s32 bsp_disp_device_set_config(int disp, struct disp_device_config *config)
+ 	int disp_dev;
+ 	int ret = -1;
+ 
+-	if ((config->dvi_hdmi != DISP_DVI) && (config->dvi_hdmi != DISP_HDMI))
+-		config->dvi_hdmi = DISP_HDMI;
+ 	if (config->range > 2)
+ 		config->range = 0;
+ 	if (config->scan > 2)
+ 		config->scan = 0;
+ 	if (!config->aspect_ratio)
+ 		config->aspect_ratio = 8;
+-	if ((config->type == DISP_OUTPUT_TYPE_HDMI)
+-		&& (!config->cs)) {
+-		if (config->mode >= DISP_TV_MOD_720P_50HZ)
+-			config->cs = DISP_BT709;
+-		else
+-			config->cs = DISP_BT601;
+-
+-		if (!config->eotf)
+-			config->eotf = DISP_EOTF_GAMMA22;
+-	}
+ 
+ 	ret = disp_device_attached_and_enable(disp, disp, config);
+ 	if (ret != 0) {
+@@ -625,13 +589,10 @@ s32 bsp_disp_sync_with_hw(struct disp_bsp_init_para *para)
+ 		config.bits = bits;
+ 		config.eotf = eotf;
+ 		config.cs = cs;
+-		config.dvi_hdmi = para->boot_info.dvi_hdmi;
+ 		config.range = para->boot_info.range;
+ 		config.scan = para->boot_info.scan;
+ 		config.aspect_ratio = para->boot_info.aspect_ratio;
+ 
+-		if ((config.dvi_hdmi != DISP_DVI) && (config.dvi_hdmi != DISP_HDMI))
+-			config.dvi_hdmi = DISP_HDMI;
+ 		if (config.range > 2)
+ 			config.range = 0;
+ 		if (config.scan > 2)
+@@ -935,7 +896,6 @@ s32 bsp_disp_get_vb_time(void)
+ 				vb_time = (start_delay) * time_per_line;
+ 			}
+ 		}
+-		/* add hdmi support ? */
+ 	}
+ 	return vb_time;
+ }
+@@ -984,7 +944,6 @@ s32 bsp_disp_get_next_vb_time(void)
+ 				}
+ 			}
+ 		}
+-		/* add hdmi support ? */
+ 	}
+ 	return next_time;
+ }
+@@ -1011,9 +970,6 @@ s32 bsp_disp_is_in_vb(void)
+ 			ret =
+ 			    disp_al_lcd_query_irq(screen_id, LCD_IRQ_TCON0_VBLK,
+ 						  &info);
+-		} else if (bsp_disp_get_output_type(screen_id) ==
+-			   DISP_OUTPUT_TYPE_HDMI) {
+-			/* FIXME: add hdmi */
+ 		}
+ 	}
+ 	return ret;
+@@ -1078,111 +1034,6 @@ s32 bsp_disp_get_screen_width_from_output_type(u32 disp, u32 output_type,
+ 		dispdev = disp_device_get(disp, DISP_OUTPUT_TYPE_EDP);
+ 		if (dispdev)
+ 			dispdev->get_resolution(dispdev, &width, &height);
+-	} else if ((output_type == DISP_OUTPUT_TYPE_HDMI)
+-		   || (output_type == DISP_OUTPUT_TYPE_TV)
+-		   || (output_type == DISP_OUTPUT_TYPE_VGA)
+-		   || (output_type == DISP_OUTPUT_TYPE_RTWB)
+-		   || (output_type == DISP_OUTPUT_TYPE_VDPO)) {
+-		switch (output_mode) {
+-		case DISP_TV_MOD_NTSC:
+-		case DISP_TV_MOD_480I:
+-		case DISP_TV_MOD_480P:
+-			width = 720;
+-			height = 480;
+-			break;
+-		case DISP_TV_MOD_PAL:
+-		case DISP_TV_MOD_576I:
+-		case DISP_TV_MOD_576P:
+-			width = 720;
+-			height = 576;
+-			break;
+-		case DISP_TV_MOD_720P_50HZ:
+-		case DISP_TV_MOD_720P_60HZ:
+-			width = 1280;
+-			height = 720;
+-			break;
+-		case DISP_TV_MOD_1080P_50HZ:
+-		case DISP_TV_MOD_1080P_60HZ:
+-		case DISP_TV_MOD_1080P_30HZ:
+-		case DISP_TV_MOD_1080P_25HZ:
+-		case DISP_TV_MOD_1080P_24HZ:
+-		case DISP_TV_MOD_1080I_50HZ:
+-		case DISP_TV_MOD_1080I_60HZ:
+-			width = 1920;
+-			height = 1080;
+-			break;
+-		case DISP_TV_MOD_1080_1920P_60HZ:
+-			width = 1080;
+-			height = 1920;
+-			break;
+-		case DISP_TV_MOD_3840_2160P_60HZ:
+-		case DISP_TV_MOD_3840_2160P_30HZ:
+-		case DISP_TV_MOD_3840_2160P_25HZ:
+-		case DISP_TV_MOD_3840_2160P_24HZ:
+-			width = 3840;
+-			height = 2160;
+-			break;
+-		case DISP_TV_MOD_4096_2160P_24HZ:
+-		case DISP_TV_MOD_4096_2160P_25HZ:
+-		case DISP_TV_MOD_4096_2160P_30HZ:
+-		case DISP_TV_MOD_4096_2160P_50HZ:
+-		case DISP_TV_MOD_4096_2160P_60HZ:
+-			width = 4096;
+-			height = 2160;
+-			break;
+-		case DISP_VGA_MOD_800_600P_60:
+-			width = 800;
+-			height = 600;
+-			break;
+-		case DISP_VGA_MOD_1024_768P_60:
+-			width = 1024;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1280_768P_60:
+-			width = 1280;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1280_800P_60:
+-			width = 1280;
+-			height = 800;
+-			break;
+-		case DISP_VGA_MOD_1366_768P_60:
+-			width = 1366;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1440_900P_60:
+-			width = 1440;
+-			height = 900;
+-			break;
+-		case DISP_TV_MOD_1440_2560P_70HZ:
+-			width = 1440;
+-			height = 2560;
+-			break;
+-		case DISP_VGA_MOD_1920_1080P_60:
+-			width = 1920;
+-			height = 1080;
+-			break;
+-		case DISP_VGA_MOD_1920_1200P_60:
+-			width = 1920;
+-			height = 1200;
+-			break;
+-		case DISP_VGA_MOD_1280_720P_60:
+-			width = 1280;
+-			height = 720;
+-			break;
+-		case DISP_VGA_MOD_1600_900P_60:
+-			width = 1600;
+-			height = 900;
+-			break;
+-		case DISP_TV_MOD_2560_1440P_60HZ:
+-			width = 2560;
+-			height = 1440;
+-			break;
+-		case DISP_TV_MOD_3840_1080P_30:
+-			width = 3840;
+-			height = 1080;
+-			break;
+-		}
+ 	}
+ 	/* FIXME: add other output device res */
+ 
+@@ -1207,153 +1058,12 @@ s32 bsp_disp_get_screen_height_from_output_type(u32 disp, u32 output_type,
+ 		dispdev = disp_device_get(disp, DISP_OUTPUT_TYPE_EDP);
+ 		if (dispdev)
+ 			dispdev->get_resolution(dispdev, &width, &height);
+-	} else if ((output_type == DISP_OUTPUT_TYPE_HDMI)
+-		   || (output_type == DISP_OUTPUT_TYPE_TV)
+-		   || (output_type == DISP_OUTPUT_TYPE_VGA)
+-		   || (output_type == DISP_OUTPUT_TYPE_RTWB)
+-		   || (output_type == DISP_OUTPUT_TYPE_VDPO)) {
+-		switch (output_mode) {
+-		case DISP_TV_MOD_NTSC:
+-		case DISP_TV_MOD_480I:
+-		case DISP_TV_MOD_480P:
+-			width = 720;
+-			height = 480;
+-			break;
+-		case DISP_TV_MOD_PAL:
+-		case DISP_TV_MOD_576I:
+-		case DISP_TV_MOD_576P:
+-			width = 720;
+-			height = 576;
+-			break;
+-		case DISP_TV_MOD_720P_50HZ:
+-		case DISP_TV_MOD_720P_60HZ:
+-			width = 1280;
+-			height = 720;
+-			break;
+-		case DISP_TV_MOD_1080P_50HZ:
+-		case DISP_TV_MOD_1080P_60HZ:
+-		case DISP_TV_MOD_1080P_30HZ:
+-		case DISP_TV_MOD_1080P_25HZ:
+-		case DISP_TV_MOD_1080P_24HZ:
+-		case DISP_TV_MOD_1080I_50HZ:
+-		case DISP_TV_MOD_1080I_60HZ:
+-			width = 1920;
+-			height = 1080;
+-			break;
+-		case DISP_TV_MOD_1080_1920P_60HZ:
+-			width = 1080;
+-			height = 1920;
+-			break;
+-		case DISP_TV_MOD_3840_2160P_60HZ:
+-		case DISP_TV_MOD_3840_2160P_30HZ:
+-		case DISP_TV_MOD_3840_2160P_25HZ:
+-		case DISP_TV_MOD_3840_2160P_24HZ:
+-			width = 3840;
+-			height = 2160;
+-			break;
+-		case DISP_TV_MOD_4096_2160P_24HZ:
+-		case DISP_TV_MOD_4096_2160P_25HZ:
+-		case DISP_TV_MOD_4096_2160P_30HZ:
+-		case DISP_TV_MOD_4096_2160P_50HZ:
+-		case DISP_TV_MOD_4096_2160P_60HZ:
+-			width = 4096;
+-			height = 2160;
+-			break;
+-		case DISP_VGA_MOD_800_600P_60:
+-			width = 800;
+-			height = 600;
+-			break;
+-		case DISP_VGA_MOD_1024_768P_60:
+-			width = 1024;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1280_768P_60:
+-			width = 1280;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1280_800P_60:
+-			width = 1280;
+-			height = 800;
+-			break;
+-		case DISP_VGA_MOD_1366_768P_60:
+-			width = 1366;
+-			height = 768;
+-			break;
+-		case DISP_VGA_MOD_1440_900P_60:
+-			width = 1440;
+-			height = 900;
+-			break;
+-		case DISP_TV_MOD_1440_2560P_70HZ:
+-			width = 1440;
+-			height = 2560;
+-			break;
+-		case DISP_VGA_MOD_1920_1080P_60:
+-			width = 1920;
+-			height = 1080;
+-			break;
+-		case DISP_VGA_MOD_1920_1200P_60:
+-			width = 1920;
+-			height = 1200;
+-			break;
+-		case DISP_VGA_MOD_1280_720P_60:
+-			width = 1280;
+-			height = 720;
+-			break;
+-		case DISP_VGA_MOD_1600_900P_60:
+-			width = 1600;
+-			height = 900;
+-			break;
+-		case DISP_TV_MOD_2560_1440P_60HZ:
+-			width = 2560;
+-			height = 1440;
+-			break;
+-		case DISP_TV_MOD_3840_1080P_30:
+-			width = 3840;
+-			height = 1080;
+-			break;
+-		}
+ 	}
+ 	/* FIXME: add other output device res */
+ 
+ 	return height;
+ }
+ 
+-s32 bsp_disp_set_hdmi_func(struct disp_device_func *func)
+-{
+-	u32 disp = 0;
+-	u32 num_screens = 0;
+-	s32 ret = 0, registered_cnt = 0;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi) {
+-			if (hdmi->set_func) {
+-				ret = hdmi->set_func(hdmi, func);
+-				if (ret == 0)
+-					registered_cnt++;
+-			} else {
+-				pr_err("disp hdmi device is NOT registered!\n");
+-				return -1;
+-			}
+-		}
+-	}
+-	if (registered_cnt != 0) {
+-		DE_INF("registered!!\n");
+-		gdisp.hdmi_registered = 1;
+-		if (gdisp.init_para.start_process)
+-			gdisp.init_para.start_process();
+-
+-		return 0;
+-	} else {
+-		pr_err("NO hdmi funcs to registered!!!\n");
+-	}
+-
+-	return -1;
+-}
+-
+ s32 bsp_disp_set_vdpo_func(struct disp_tv_func *func)
+ {
+ 	u32 disp = 0;
+@@ -1415,107 +1125,6 @@ s32 bsp_disp_set_edp_func(struct disp_tv_func *func)
+ 
+ 	return -1;
+ }
+-
+-s32 bsp_disp_hdmi_check_support_mode(u32 disp, enum disp_output_type mode)
+-{
+-	u32 num_screens = 0;
+-	s32 ret = 0;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi && hdmi->check_support_mode) {
+-			ret = hdmi->check_support_mode(hdmi, (u32) mode);
+-			break;
+-		}
+-	}
+-
+-	return ret;
+-}
+-
+-s32 bsp_disp_hdmi_set_detect(bool hpd)
+-{
+-	u32 num_screens = 0;
+-	u32 disp;
+-	s32 ret = 0;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi && hdmi->set_detect) {
+-			ret = hdmi->set_detect(hdmi, hpd);
+-			break;
+-		}
+-	}
+-
+-	return ret;
+-}
+-
+-s32 bsp_disp_hdmi_cec_standby_request(void)
+-{
+-	u32 num_screens = 0;
+-	s32 ret = 0;
+-	u32 disp;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi && hdmi->cec_standby_request) {
+-			ret = hdmi->cec_standby_request(hdmi);
+-			break;
+-		}
+-	}
+-
+-	return ret;
+-}
+-
+-s32 bsp_disp_hdmi_cec_send_one_touch_play(void)
+-{
+-	u32 num_screens = 0;
+-	s32 ret = 0;
+-	u32 disp;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi && hdmi->cec_send_one_touch_play) {
+-			ret = hdmi->cec_send_one_touch_play(hdmi);
+-			break;
+-		}
+-	}
+-
+-	return ret;
+-}
+-
+-s32 bsp_disp_hdmi_get_color_format(void)
+-{
+-	u32 num_screens = 0;
+-	s32 ret = 0;
+-	u32 disp;
+-
+-	num_screens = bsp_disp_feat_get_num_screens();
+-	for (disp = 0; disp < num_screens; disp++) {
+-		struct disp_device *hdmi;
+-
+-		hdmi = disp_device_find(disp, DISP_OUTPUT_TYPE_HDMI);
+-		if (hdmi && hdmi->get_input_csc) {
+-			ret = hdmi->get_input_csc(hdmi);
+-			break;
+-		}
+-	}
+-
+-	return ret;
+-
+-}
+-
+ s32 bsp_disp_tv_set_hpd(u32 state)
+ {
+ #if defined SUPPORT_TV
+@@ -1631,11 +1240,6 @@ s32 bsp_disp_get_lcd_registered(u32 disp)
+ 	return gdisp.lcd_registered[disp];
+ }
+ 
+-s32 bsp_disp_get_hdmi_registered(void)
+-{
+-	return gdisp.hdmi_registered;
+-}
+-
+ s32 bsp_disp_get_tv_registered(void)
+ {
+ 	return gdisp.tv_registered;
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.h b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.h
+index 8aa819113..098098b24 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.h
+@@ -79,20 +79,13 @@ s32 bsp_disp_get_screen_width_from_output_type(u32 disp, u32 output_type,
+ s32 bsp_disp_get_screen_height_from_output_type(u32 disp, u32 output_type,
+ 						u32 output_mode);
+ s32 bsp_disp_get_lcd_registered(u32 disp);
+-s32 bsp_disp_get_hdmi_registered(void);
+ s32 bsp_disp_get_tv_registered(void);
+ 
+ s32 bsp_disp_get_output_type(u32 disp);
+ s32 bsp_disp_device_switch(int disp, enum disp_output_type output_type,
+ 			   enum disp_output_type mode);
+ s32 bsp_disp_device_set_config(int disp, struct disp_device_config *config);
+-s32 bsp_disp_set_hdmi_func(struct disp_device_func *func);
+ s32 bsp_disp_set_vdpo_func(struct disp_tv_func *func);
+-s32 bsp_disp_hdmi_check_support_mode(u32 disp, enum disp_output_type mode);
+-s32 bsp_disp_hdmi_set_detect(bool hpd);
+-s32 bsp_disp_hdmi_cec_standby_request(void);
+-s32 bsp_disp_hdmi_cec_send_one_touch_play(void);
+-s32 bsp_disp_hdmi_get_color_format(void);
+ 
+ s32 bsp_disp_tv_register(struct disp_tv_func *func);
+ s32 bsp_disp_tv_set_hpd(u32 state);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_enhance.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_enhance.c
+index 11d363490..3c662e26f 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_enhance.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_enhance.c
+@@ -209,7 +209,7 @@ static s32 disp_enhance_enable(struct disp_enhance *enhance)
+ 					&enhancep->config.info.size.height);
+ 		if (dispdev->type == DISP_OUTPUT_TYPE_HDMI)
+ 			enhancep->config.info.mode = (enhancep->config.info.mode
+-			    & 0xffff0000) | (1);	/* hdmi */
++			    & 0xffff0000) | (1);
+ 		else
+ 			enhancep->config.info.mode = (enhancep->config.info.mode
+ 			    & 0xffff0000) | (0);	/* lcd */
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index 41a8562ef..2290f2826 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -77,6 +77,36 @@ static spinlock_t lcd_data_lock;
+ static struct disp_device *lcds;
+ static struct disp_lcd_private_data *lcd_private;
+ 
++static int disp_check_timing_param(struct disp_panel_para *panel)
++{
++	u32 x = panel->lcd_x;
++	u32 y = panel->lcd_y;
++	u32 vt = panel->lcd_vt;
++	u32 vbp = panel->lcd_vbp;
++	u32 ht = panel->lcd_ht;
++	u32 hbp = panel->lcd_hbp;
++	u32 hspw = panel->lcd_hspw;
++	u32 vspw = panel->lcd_vspw;
++
++	if (ht <= x + hbp) {
++		panel->lcd_ht = x + hbp + (hbp - panel->lcd_hspw);
++		pr_err("[ERROR]timing param error!\n");
++		pr_err("lcd_ht need to be equal to lcd_x + lcd_hbp + lcd_hfp.\n");
++		pr_err("lcd_x = %d, lcd_hbp = %d, lcd_ht = %d, lcd_hspw = %d.\n", x, hbp, ht, hspw);
++		pr_err("Now, reset lcd_ht = %u.\n\n", panel->lcd_ht);
++	}
++
++	if (vt <= y + vbp) {
++		panel->lcd_vt = y + vbp + (vbp - panel->lcd_vspw);
++		pr_err("[ERROR]timing param error!\n");
++		pr_err("lcd_vt need to be equal to lcd_y + lcd_vbp + lcd_vfp.\n");
++		pr_err("lcd_y = %d, lcd_vbp = %d, lcd_vt = %d, lcd_vspw = %d.\n", y, vbp, vt, vspw);
++		pr_err("Now, reset lcd_vt = %u. \n\n", panel->lcd_vt);
++	}
++
++	return 0;
++}
++
+ struct disp_device *disp_get_lcd(u32 disp)
+ {
+ 	u32 num_screens;
+@@ -671,11 +701,7 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 	memset(&clk_info, 0, sizeof(struct lcd_clk_info));
+ 	disp_al_lcd_get_clk_info(lcd->hwdev_index, &clk_info,
+ 				 &lcdp->panel_info);
+-		
+ 	dclk_rate = lcdp->panel_info.lcd_dclk_freq * 1000000;	/* Mhz -> hz */
+-	DE_WRN("clk_info: tcon_div=%d, dsi_div=%d, lcd_div=%d\n", 
+-       clk_info.tcon_div, clk_info.dsi_div, clk_info.lcd_div);
+-	DE_WRN("panel: dclk_freq=%d lcd_dsi_if=%d\n", lcdp->panel_info.lcd_dclk_freq, lcdp->panel_info.lcd_dsi_if);
+ 	if (lcdp->panel_info.lcd_if == LCD_IF_DSI) {
+ 		lcd_rate = dclk_rate * clk_info.dsi_div;
+ 		pll_rate = lcd_rate * clk_info.lcd_div;
+@@ -685,24 +711,18 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 	}
+ 	dsi_rate = pll_rate / clk_info.dsi_div;
+ 
+-	DE_WRN("lyrdebug start\n");
+ 	if (lcdp->clk_parent) {
+-		DE_WRN("lyrdebug set pll_rate_set(%ld)\n",pll_rate);
+ 		clk_set_rate(lcdp->clk_parent, pll_rate);
+ 		pll_rate_set = clk_get_rate(lcdp->clk_parent);
+-		DE_WRN("lyrdebug get pll_rate_set(%ld)\n",pll_rate_set);
+ 	}
+ 
+ 	if (clk_info.lcd_div)
+ 		lcd_rate_set = pll_rate_set / clk_info.lcd_div;
+ 	else
+ 		lcd_rate_set = pll_rate_set;
+-	DE_WRN("lyrdebug get lcd_rate_set-1-(%ld)\n",lcd_rate_set);
++
+ 	clk_set_rate(lcdp->clk_tcon_lcd, lcd_rate_set);
+ 	lcd_rate_set = clk_get_rate(lcdp->clk_tcon_lcd);
+-	DE_WRN("lyrdebug get lcd_rate_set-2-(%ld)\n",lcd_rate_set);
+-	DE_WRN("lyrdebug end\n");
+-
+ #if defined(SUPPORT_DSI)
+ 	if (lcdp->panel_info.lcd_if == LCD_IF_DSI) {
+ 		if (lcdp->panel_info.lcd_dsi_if == LCD_DSI_IF_COMMAND_MODE)
+@@ -753,21 +773,10 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 
+ 		DE_WRN
+ 		    ("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
+-		     lcd->disp, 
+-			 pll_rate, 
+-			 lcd_rate, 
+-			 dclk_rate, 
+-			 dsi_rate,
+-
+-		     pll_rate_set, 
+-			 lcd_rate_set, 
+-			 dclk_rate_set, 
+-			 dsi_rate_set);
+-	}
+-	DE_WRN
+-		("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
+-			lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate,
+-			pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
++		     lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate,
++		     pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
++	}
++
+ 	return 0;
+ }
+ 
+@@ -972,7 +981,6 @@ unsigned int lcd_pin, lcd_po, lcd_tcon;
+ struct qareg_iomap_data {
+ 	int initialized;
+ 	void *qa_addr;
+-	void *ic_ver_addr;
+ 	void *disp_cfg_addr;
+ };
+ static struct qareg_iomap_data iomap_data;
+@@ -991,7 +999,6 @@ static s32 disp_lcd_speed_limit(struct disp_panel_para *panel, u32 *min_dclk,
+ 
+ 	if (!iomap_data.initialized) {
+ 		iomap_data.qa_addr = ioremap(0x0300621c, 4);
+-		iomap_data.ic_ver_addr = ioremap(0x03000024, 4);
+ 		iomap_data.disp_cfg_addr = ioremap(0x03006218, 4);
+ 		iomap_data.initialized = 1;
+ 	}
+@@ -1002,14 +1009,14 @@ static s32 disp_lcd_speed_limit(struct disp_panel_para *panel, u32 *min_dclk,
+ 	*max_dclk = 9999;
+ 
+ #if defined(CONFIG_ARCH_SUN50IW10)
+-	if (!iomap_data.qa_addr || !iomap_data.ic_ver_addr || !iomap_data.disp_cfg_addr) {
+-		DE_WRN("ioremap fail!%p %p %p\n", iomap_data.qa_addr, iomap_data.ic_ver_addr,
++	if (!iomap_data.qa_addr || !iomap_data.disp_cfg_addr) {
++		DE_WRN("ioremap fail!%p %p \n", iomap_data.qa_addr,
+ 		       iomap_data.disp_cfg_addr);
+ 		goto OUT;
+ 	}
+ 	qa_val = readl(iomap_data.qa_addr);
+ 	qa_val = (qa_val >> 28) & 0x00000003;
+-	ic_ver = readl(iomap_data.ic_ver_addr) & 0x00000007;
++	ic_ver = sunxi_get_soc_ver();
+ 	display_cfg_flag = (readl(iomap_data.disp_cfg_addr) >> 12) & 0x00000001;
+ 	sunxi_get_soc_chipid_str(id);
+ 
+@@ -1789,6 +1796,7 @@ static void disp_lcd_reflush_work(struct work_struct *work)
+ 		atomic_set(&lcdp->lcd_resetting, 2);
+ 
+ 		disp_lcd_tcon_disable(lcd);
++		disp_check_timing_param(&lcdp->panel_info);
+ 		disp_al_lcd_cfg(lcd->hwdev_index, &lcdp->panel_info,
+ 				&lcdp->panel_extend_info_set);
+ 	} else
+@@ -1900,6 +1908,7 @@ static s32 disp_lcd_fake_enable(struct disp_device *lcd)
+ 	disp_sys_pwm_config(lcdp->pwm_info.dev, lcdp->pwm_info.duty_ns,
+ 			    lcdp->pwm_info.period_ns);
+ 	disp_sys_pwm_set_polarity(lcdp->pwm_info.dev, lcdp->pwm_info.polarity);
++	disp_check_timing_param(&lcdp->panel_info);
+ 	disp_al_lcd_cfg(lcd->hwdev_index, &lcdp->panel_info,
+ 		&lcdp->panel_extend_info_set);
+ 	lcdp->open_flow.func_num = 0;
+@@ -2000,6 +2009,7 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 	if (ret)
+ 		DE_WRN("cal_real_frame_period fail:%d\n", ret);
+ 
++	disp_check_timing_param(&lcdp->panel_info);
+ 	disp_al_lcd_cfg(lcd->hwdev_index, &lcdp->panel_info,
+ 			&lcdp->panel_extend_info);/* init tcon_lcd regs */
+ 	lcdp->open_flow.func_num = 0;
+@@ -2085,7 +2095,7 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 	struct disp_manager *mgr = NULL;
+ 	unsigned bl;
+ 	int ret = 0;
+-	__wrn("lcd enable :%d\n",lcd->disp);
++
+ 	if ((lcd == NULL) || (lcdp == NULL)) {
+ 		DE_WRN("NULL hdl!\n");
+ 		return DIS_FAIL;
+@@ -2148,6 +2158,7 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 	disp_sys_pwm_config(lcdp->pwm_info.dev, lcdp->pwm_info.duty_ns,
+ 			    lcdp->pwm_info.period_ns);
+ 	disp_sys_pwm_set_polarity(lcdp->pwm_info.dev, lcdp->pwm_info.polarity);
++	disp_check_timing_param(&lcdp->panel_info);
+ 	disp_al_lcd_cfg(lcd->hwdev_index, &lcdp->panel_info,
+ 		&lcdp->panel_extend_info_set);
+ 	lcd_calc_judge_line(lcd);
+@@ -2163,8 +2174,6 @@ static s32 disp_lcd_enable(struct disp_device *lcd)
+ 		lcdp->esd_inf.cnt = 0;
+ 	}
+ #endif
+-	__wrn("[DISP_DBG] lcdp->lcd_panel_fun.cfg_open_flow=%p\n",
+-	      lcdp->lcd_panel_fun.cfg_open_flow);
+ 	if (lcdp->lcd_panel_fun.cfg_open_flow)
+ 		lcdp->lcd_panel_fun.cfg_open_flow(lcd->disp);
+ 	else
+@@ -2432,11 +2441,9 @@ static s32 disp_lcd_set_open_func(struct disp_device *lcd, LCD_FUNC func,
+ 				  u32 delay)
+ {
+ 	struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
+-	pr_warn("[DISP_DBG] set_open_func: lcd %d, func=%p, delay=%d\n",
+-		 lcd->disp, func, delay);
++
+ 	if ((lcd == NULL) || (lcdp == NULL)) {
+ 		DE_WRN("NULL hdl!\n");
+-		pr_warn("[DISP_DBG] set_open_func: NULL hdl!\n");
+ 		return -1;
+ 	}
+ 
+@@ -2445,7 +2452,7 @@ static s32 disp_lcd_set_open_func(struct disp_device *lcd, LCD_FUNC func,
+ 		lcdp->open_flow.func[lcdp->open_flow.func_num].delay = delay;
+ 		lcdp->open_flow.func_num++;
+ 	}
+-	pr_warn("[DISP_DBG] set_open_func finished\n");
++
+ 	return DIS_SUCCESS;
+ }
+ 
+@@ -2479,11 +2486,7 @@ static s32 disp_lcd_set_panel_funs(struct disp_device *lcd, char *name,
+ 		return DIS_FAIL;
+ 	}
+ 
+-	/* DEBUG: log every panel selection attempt */
+-	pr_warn("[DISP_DBG] set_panel_funs: lcd %d, drv='%s', panel='%s'\n",
+-		 lcd->disp,
+-		 lcdp->panel_info.lcd_driver_name ? lcdp->panel_info.lcd_driver_name : "(null)",
+-		 name ? name : "(null)");
++
+ 	DE_INF("lcd %d, driver_name %s,  panel_name %s\n", lcd->disp, lcdp->panel_info.lcd_driver_name,
+ 	       name);
+ 	if (!strcmp(lcdp->panel_info.lcd_driver_name, name)) {
+@@ -2527,11 +2530,8 @@ s32 disp_lcd_gpio_init(struct disp_device *lcd)
+ 	/* io-pad */
+ 	for (i = 0; i < LCD_GPIO_REGU_NUM; i++) {
+ 		ret = disp_sys_power_enable(lcdp->lcd_cfg.gpio_regulator[i]);
+-		if (ret){
+-			pr_warn("lcd_gpio_init fail at %d\n", i);
++		if (ret)
+ 			return DIS_FAIL;
+-
+-		}
+ 	}
+ 
+ 
+@@ -2782,6 +2782,27 @@ static s32 disp_lcd_set_gamma_tbl(struct disp_device *lcd,
+ 	return 0;
+ }
+ 
++static s32 disp_lcd_get_gamma_tbl(struct disp_device *lcd,
++			unsigned int *gamma_table, unsigned int size)
++{
++	struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
++	unsigned long flags;
++
++	if ((lcd == NULL) || (lcdp == NULL)
++	    || (gamma_table == NULL)) {
++		DE_WRN("NULL hdl!\n");
++		return 0;
++	}
++
++	size = (size > LCD_GAMMA_TABLE_SIZE) ?
++	    LCD_GAMMA_TABLE_SIZE : size;
++	spin_lock_irqsave(&lcd_data_lock, flags);
++	memcpy(gamma_table, lcdp->panel_extend_info.lcd_gamma_tbl, size);
++	spin_unlock_irqrestore(&lcd_data_lock, flags);
++
++	return 0;
++}
++
+ static s32 disp_lcd_enable_gamma(struct disp_device *lcd)
+ {
+ 	struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
+@@ -2884,7 +2905,7 @@ static s32 disp_lcd_init(struct disp_device *lcd, int lcd_index)
+ 		DE_WRN("NULL hdl!\n");
+ 		return DIS_FAIL;
+ 	}
+-	printk("disp_lcd_init lcd_index=%d\n", lcd_index);
++
+ 	lcd_get_sys_config(lcd_index, &lcdp->lcd_cfg);
+ 
+ 	lcd_regulator_get_wrap(&lcdp->lcd_cfg);
+@@ -2892,7 +2913,7 @@ static s32 disp_lcd_init(struct disp_device *lcd, int lcd_index)
+ 	if (disp_lcd_is_used(lcd)) {
+ 		struct disp_video_timings *timmings;
+ 		struct disp_panel_para *panel_info;
+-		printk("disp_lcd_init lcd is used parsing panel parameters for lcd_index=%d\n", lcd_index);
++
+ 		lcd_parse_panel_para(lcd_index, &lcdp->panel_info);
+ 		lcdp->panel_extend_info.lcd_cmap_en = lcdp->panel_info.lcd_cmap_en;
+ 		lcdp->panel_extend_info.lcd_gamma_en = lcdp->panel_info.lcd_gamma_en;
+@@ -3123,42 +3144,7 @@ static u32 disp_lcd_usec_before_vblank(struct disp_device *dispdev)
+ exit:
+ 	return usec;
+ }
+-typedef struct
+-{
+-	volatile unsigned int Timing0;
+-	volatile unsigned int Timing1;
+-	volatile unsigned int Timing2;
+-	volatile unsigned int Timing3;
+-}RegTypeDef;
+-
+-static void set_lcd_timings(unsigned int dwLcdRegBase, struct disp_video_timings* pTimings)
+-{
+-	RegTypeDef* reg;
+-	unsigned int dwWidth, dwHeight;
+-	unsigned int dwHT, dwHBP;
+-	unsigned int dwVT, dwVBP;
+-	unsigned int dwHSPW, dwVSPW;
+ 
+-	reg = (RegTypeDef*)(dwLcdRegBase + 0x48);
+-	
+-	dwWidth = pTimings->x_res;
+-	dwHSPW = pTimings->hor_sync_time;
+-	dwHBP = pTimings->hor_back_porch + pTimings->hor_sync_time;	//在官方文档里：hbp = hbp + hspw，然而在全志的代码里面又将hspw其减去，所以在这里需要加回来
+-	dwHT = pTimings->hor_total_time;
+-
+-	dwHeight = pTimings->y_res;;
+-	dwVSPW = pTimings->ver_sync_time;
+-	dwVBP = pTimings->ver_back_porch + pTimings->ver_sync_time;
+-	dwVT = pTimings->ver_total_time;
+-
+-	reg->Timing0 = ((dwWidth - 1) << 16) | (dwHeight - 1);
+-	reg->Timing1 = ((dwHT - 1) << 16) | (dwHBP - 1);
+-	reg->Timing2 = (((dwVT - 1) * 2) << 16) | (dwVBP - 1);
+-	reg->Timing3 = ((dwHSPW - 1) << 16) | (dwVSPW - 1);
+-
+-	printk("width: %d, hspw: %d, hbp: %d, ht: %d\n", dwWidth, dwHSPW, dwHBP, dwHT);
+-	printk("height: %d, vspw: %d, vbp: %d, vt: %d\n", dwHeight, dwVSPW, dwVBP, dwVT);
+-}
+ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ {
+ 	u32 num_devices;
+@@ -3169,14 +3155,13 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 	u32 num_devices_support_lcd = 0;
+ #if defined(SUPPORT_DSI)
+ 	u32 i = 0, index_base;
+-	printk("disp_init_lcd start SUPPORT_DSI...\n");
+ #endif
+ #if defined(CONFIG_ARCH_SUN8IW17P1)
+ 	char primary_key[20];
+ 	int ret = 0, value = 1;
+ 	s32 use_dsi_flag = 0;
+ #endif
+-	printk("disp_init_lcd start ...\n");
++
+ 	DE_INF("disp_init_lcd\n");
+ 
+ 	spin_lock_init(&lcd_data_lock);
+@@ -3208,10 +3193,8 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 
+ 	disp = 0;
+ 	for (hwdev_index = 0; hwdev_index < num_devices; hwdev_index++) {
+-		printk("disp_init_lcd hwdev_index=%d\n", hwdev_index);
+ 		if (!bsp_disp_feat_is_supported_output_types
+ 		    (hwdev_index, DISP_OUTPUT_TYPE_LCD)) {
+-				printk("disp_init_lcd hwdev_index=%d not support lcd  \n", hwdev_index);
+ 			continue;
+ 		}
+ 
+@@ -3292,6 +3275,7 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 		lcd->is_in_safe_period = disp_lcd_is_in_safe_period;
+ 		lcd->usec_before_vblank = disp_lcd_usec_before_vblank;
+ 		lcd->set_gamma_tbl = disp_lcd_set_gamma_tbl;
++		lcd->get_gamma_tbl = disp_lcd_get_gamma_tbl;
+ 		lcd->enable_gamma = disp_lcd_enable_gamma;
+ 		lcd->disable_gamma = disp_lcd_disable_gamma;
+ 		lcd->get_fps = disp_lcd_get_fps;
+@@ -3309,11 +3293,7 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 		INIT_WORK(&lcd->close_eink_panel_work,
+ 			  disp_close_eink_panel_task);
+ #endif
+-		printk("disp_lcd_init caller ...\n");
+-
+ 		disp_lcd_init(lcd, lcd->disp);
+-		set_lcd_timings(para->reg_base[DISP_MOD_LCD0], &lcd->timings);
+-		printk("disp_device_register caller ...\n");
+ 		disp_device_register(lcd);
+ #if defined(CONFIG_DISP2_LCD_ESD_DETECT)
+ 		INIT_WORK(&lcdp->reflush_work, disp_lcd_reflush_work);
+@@ -3366,12 +3346,10 @@ s32 disp_exit_lcd(void)
+ #if defined(CONFIG_ARCH_SUN50IW10)
+ 	if (iomap_data.initialized) {
+ 		iounmap(iomap_data.qa_addr);
+-		iounmap(iomap_data.ic_ver_addr);
+ 		iounmap(iomap_data.disp_cfg_addr);
+ 
+ 		iomap_data.initialized = 0;
+ 		iomap_data.qa_addr = NULL;
+-		iomap_data.ic_ver_addr = NULL;
+ 		iomap_data.disp_cfg_addr = NULL;
+ 	}
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.c
+index 37ed89eae..d29b2b352 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.c
+@@ -22,6 +22,8 @@ struct disp_manager_private_data {
+ 	bool enabled;
+ 	bool unmap_dmabuf;
+ 	bool setting;
++	unsigned long last_apply_time;
++	unsigned int last_apply_line;
+ 	bool color_range_modified;
+ 	struct disp_manager_data *cfg;
+ 
+@@ -69,6 +71,7 @@ static struct disp_manager_private_data *mgr_private;
+ static struct disp_manager_data *mgr_cfgs;
+ 
+ static struct disp_layer_config_data *lyr_cfgs;
++static struct disp_layer_config_data *lyr_cfgs_bak;
+ 
+ static int rcq_init_finished;
+ 
+@@ -790,6 +793,16 @@ static s32 disp_init_lyr(struct disp_bsp_init_para *para)
+ 		return DIS_FAIL;
+ 	}
+ 
++	lyr_cfgs_bak = (struct disp_layer_config_data *)
++	    kmalloc(sizeof(struct disp_layer_config_data) *
++		    max_num_layers, GFP_KERNEL | __GFP_ZERO);
++	if (lyr_cfgs_bak == NULL) {
++		DE_WRN("malloc memory fail! size=0x%x\n",
++		       (unsigned int)sizeof(struct disp_layer_private_data)
++		       * max_num_layers);
++		return DIS_FAIL;
++	}
++
+ 	for (disp = 0; disp < num_screens; disp++) {
+ 		num_channels = bsp_disp_feat_get_num_channels(disp);
+ 		for (chn = 0; chn < num_channels; chn++) {
+@@ -869,6 +882,31 @@ int disp_get_num_screens(void)
+ 	return num_screens;
+ }
+ EXPORT_SYMBOL(disp_get_num_screens);
++
++int disp_get_current_output_format_by_device_type(u32 disp)
++{
++	struct disp_manager *mgr = NULL;
++
++	mgr = disp_get_layer_manager(disp);
++
++	// default: DE_YUV format
++	if (!mgr)
++		return DE_YUV;
++
++	if (!mgr->device)
++		return DE_YUV;
++
++	switch (mgr->device->type) {
++	case DISP_OUTPUT_TYPE_TV:
++		return DE_YUV;
++	case DISP_OUTPUT_TYPE_LCD:
++		return DE_RGB;
++	default:
++		return DE_YUV;
++	}
++}
++EXPORT_SYMBOL(disp_get_current_output_format_by_device_type);
++
+ static struct disp_manager_private_data *disp_mgr_get_priv(struct disp_manager
+ 							   *mgr)
+ {
+@@ -880,6 +918,20 @@ static struct disp_manager_private_data *disp_mgr_get_priv(struct disp_manager
+ 	return &mgr_private[mgr->disp];
+ }
+ 
++static struct disp_layer_config_data *disp_mgr_get_layer_cfg_head_bak(struct
++								  disp_manager
++								  *mgr)
++{
++	int layer_index = 0, disp;
++	int num_screens = bsp_disp_feat_get_num_screens();
++
++	for (disp = 0; disp < num_screens && disp < mgr->disp; disp++)
++		layer_index += bsp_disp_feat_get_num_layers(disp);
++
++	return &lyr_cfgs_bak[layer_index];
++
++}
++
+ static struct disp_layer_config_data *disp_mgr_get_layer_cfg_head(struct
+ 								  disp_manager
+ 								  *mgr)
+@@ -915,8 +967,13 @@ static s32 disp_mgr_protect_reg_for_rcq(
+ {
+ 	struct disp_manager_private_data *mgrp = disp_mgr_get_priv(mgr);
+ 	long ret = 0;
++	unsigned int curline;
++	struct disp_video_timings tt;
++	struct disp_device *dispdev;
++	bool close_to_new_frame = false;
++	unsigned long flags;
+ 
+-	if ((mgr == NULL) || (mgrp == NULL)) {
++	if ((mgr == NULL) || (mgrp == NULL) || (mgr->device == NULL)) {
+ 		__wrn("NULL hdl!\n");
+ 		return -1;
+ 	}
+@@ -925,8 +982,14 @@ static s32 disp_mgr_protect_reg_for_rcq(
+ 		return -1;
+ 	}
+ 
++	dispdev = mgr->device;
++	curline = disp_al_device_get_cur_line(dispdev->hwdev_index);
++
+ 	if (protect) {
+-		if (atomic_read(&mgrp->wati_rcq_finish_flag) == 1) {
++		dispdev->get_timings(dispdev, &tt);
++		close_to_new_frame = curline > tt.ver_total_time - tt.ver_front_porch || dispdev->is_in_safe_period(dispdev);
++
++		if (close_to_new_frame && atomic_read(&mgrp->wati_rcq_finish_flag) == 1) {
+ 			ret = wait_event_timeout(
+ 						 mgrp->wait_rcq_finish_queue,
+ 						 atomic_read(&mgrp->wati_rcq_finish_flag) == 2,
+@@ -934,13 +997,18 @@ static s32 disp_mgr_protect_reg_for_rcq(
+ 			if (ret <= 0) {
+ 				atomic_set(&mgrp->wati_rcq_finish_flag, 2);
+ 				disp_al_manager_set_rcq_update(mgr->disp, 0);
+-				wake_up(&mgrp->wait_rcq_finish_queue);
++				wake_up_all(&mgrp->wait_rcq_finish_queue);
+ 				gdisp.screen[mgr->disp].health_info.skip_cnt++;
+-			} else
+-				disp_al_manager_set_all_rcq_head_dirty(mgr->disp, 0);
++			}
++		} else if (atomic_read(&mgrp->wati_rcq_finish_flag) == 1) {
++			disp_al_manager_set_rcq_update(mgr->disp, 0);/*disable rcq update as long as sw access*/
+ 		}
+ 	} else {
+ 		DISP_TRACE_BEGIN("set_rcq_update");
++		spin_lock_irqsave(&mgr_data_lock, flags);
++		mgrp->last_apply_time = jiffies;
++		mgrp->last_apply_line = curline;
++		spin_unlock_irqrestore(&mgr_data_lock, flags);
+ 		disp_al_manager_set_rcq_update(mgr->disp, 1);
+ 		/*don't wait rcq finish if output type is rtwb*/
+ 		if (mgr->device && mgr->device->type == DISP_OUTPUT_TYPE_RTWB)
+@@ -988,10 +1056,21 @@ static s32 disp_mgr_rcq_finish_irq_handler(
+ 		if (mgr->device && mgr->device->get_status)
+ 			if (mgr->device->get_status(mgr->device) != 0)
+ 				gdisp.screen[mgr->disp].health_info.error_cnt++;
+-		disp_al_manager_set_all_rcq_head_dirty(mgr->disp, 0);
++
+ 		spin_lock_irqsave(&mgr_data_lock, flags);
+-		/*rcq update ok, we know exactly what address is using, so just unmap dmabuf*/
+-		mgrp->unmap_dmabuf = true;
++		if (!mgrp->setting &&
++			(mgrp->last_apply_line > disp_al_device_get_cur_line(mgr->device->hwdev_index) ||
++			time_after(jiffies, mgrp->last_apply_time + msecs_to_jiffies(1000/mgrp->cfg->config.device_fps)))) {
++			mgrp->unmap_dmabuf = true;
++			/*to avoid clean the still not updated rcq head*/
++			disp_al_manager_set_all_rcq_head_dirty(mgr->disp, 0);
++			mgrp->dmabuf_unmap_skip_cnt = 0;
++		} else {
++			mgrp->dmabuf_unmap_skip_cnt_max = mgrp->dmabuf_unmap_skip_cnt++ >
++							mgrp->dmabuf_unmap_skip_cnt_max ?
++							mgrp->dmabuf_unmap_skip_cnt :
++							mgrp->dmabuf_unmap_skip_cnt_max;
++		}
+ 		spin_unlock_irqrestore(&mgr_data_lock, flags);
+ 		atomic_set(&mgrp->wati_rcq_finish_flag, 2);
+ 		wake_up(&mgrp->wait_rcq_finish_queue);
+@@ -1399,13 +1478,12 @@ static s32 disp_mgr_smooth_switch(struct disp_manager *mgr)
+ 	return DIS_SUCCESS;
+ }
+ 
+-static int _force_layer_en;
+-static int _force_layer2;
++static int _force_layer_en[2];
++static int _force_layer2[2];
+ static struct disp_layer_config backup_layer[2][16];
+ static struct disp_layer_config2 backup_layer2[2][16];
+-struct dmabuf_item back_dma_item[2][4];
+ 
+-static int backup_layer_num;
++static int backup_layer_num[2];
+ 
+ static void layer_mask_init(unsigned int *mask, unsigned int total)
+ {
+@@ -1442,7 +1520,7 @@ static s32 disp_mgr_force_set_layer_config(struct disp_manager *mgr, struct disp
+ 	}
+ 
+ 	mutex_lock(&mgr_mlock);
+-	_force_layer_en = 1;
++	_force_layer_en[mgr->disp] = 1;
+ 
+ 	num_layers = bsp_disp_feat_get_num_layers(mgr->disp);
+ 	if ((config == NULL) || (layer_num == 0) || (layer_num > num_layers)) {
+@@ -1519,21 +1597,36 @@ static s32 disp_mgr_force_set_layer_config_exit(struct disp_manager *mgr)
+ 		return -1;
+ 	}
+ 
++	if (!mgr->is_enabled(mgr))
++		return 0;
++
+ 	num_layers = bsp_disp_feat_get_num_layers(mgr->disp);
+ 
+ 	mutex_lock(&mgr_mlock);
+-	layer_num = backup_layer_num;
++	layer_num = backup_layer_num[mgr->disp];
+ 	backup = &(backup_layer[mgr->disp][0]);
+ 	backup2 = &(backup_layer2[mgr->disp][0]);
+ 
+-	if (layer_num <= 0 || layer_num > num_layers) {
++	if (layer_num < 0 || layer_num > num_layers) {
+ 		DE_WRN("invalid input params!\n");
+ 		mutex_unlock(&mgr_mlock);
+ 		return -1;
++} else if (layer_num == 0) {
++		_force_layer_en[mgr->disp] = 0;
++		mutex_unlock(&mgr_mlock);
++		backup2 = kmalloc(sizeof(struct disp_layer_config2) * num_layers, GFP_KERNEL | __GFP_ZERO);
++		for (id = 0; id < num_layers; ++id) {
++			backup2[id].enable = false;
++			backup2[id].channel = id / 4;
++			backup2[id].layer_id = id % 4;
++		}
++		mgr->set_layer_config2(mgr, backup2, num_layers);
++		kfree(backup2);
++		return 0;
+ 	}
+-	if (_force_layer2) {
++	if (_force_layer2[mgr->disp]) {
+ 		disp_mgr_set_layer_config2_restore(mgr, backup2, layer_num);
+-		_force_layer_en = 0;
++		_force_layer_en[mgr->disp] = 0;
+ 		mutex_unlock(&mgr_mlock);
+ 		return DIS_SUCCESS;
+ 	}
+@@ -1575,7 +1668,7 @@ static s32 disp_mgr_force_set_layer_config_exit(struct disp_manager *mgr)
+ 	list_for_each_entry(lyr, &mgr->lyr_list, list) {
+ 		lyr->dirty_clear(lyr);
+ 	}
+-	_force_layer_en = 0;
++	_force_layer_en[mgr->disp] = 0;
+ 	mutex_unlock(&mgr_mlock);
+ 
+ 	return DIS_SUCCESS;
+@@ -1617,15 +1710,15 @@ disp_mgr_set_layer_config(struct disp_manager *mgr,
+ 	{
+ 		struct disp_layer_config *src = config;
+ 		struct disp_layer_config *backup = &(backup_layer[mgr->disp][0]);
+-		backup_layer_num = layer_num;
++		backup_layer_num[mgr->disp] = layer_num;
+ 		memset(backup, 0, sizeof(struct disp_layer_config)*16);
+ 		for (layer_index = 0; layer_index < layer_num; layer_index++) {
+ 			memcpy(backup, src, sizeof(struct disp_layer_config));
+ 			backup++;
+ 			src++;
+ 		}
+-		if (_force_layer_en) {
+-			_force_layer2 = 0;
++		if (_force_layer_en[mgr->disp]) {
++			_force_layer2[mgr->disp] = 0;
+ 			mutex_unlock(&mgr_mlock);
+ 			return DIS_SUCCESS;
+ 		}
+@@ -1663,6 +1756,30 @@ static void disp_mgr_dmabuf_list_add(struct dmabuf_item *item,
+ 	mgrp->dmabuf_cnt++;
+ }
+ 
++static struct dmabuf_item *disp_mgr_dmabuf_list_find_latest(
++			struct disp_manager *mgr,
++			struct disp_layer_id *layer)
++{
++	struct disp_manager_private_data *mgrp = disp_mgr_get_priv(mgr);
++	struct dmabuf_item *item, *ret = NULL;
++
++	if ((mgr == NULL) || (mgrp == NULL)) {
++		DE_WRN("NULL hdl!\n");
++		return NULL;
++	}
++
++	list_for_each_entry_reverse(item, &mgrp->dmabuf_list, list) {
++		if (layer->disp == item->lyr_id.disp &&
++		    layer->channel == item->lyr_id.channel &&
++		    layer->layer_id == item->lyr_id.layer_id &&
++		    layer->type == item->lyr_id.type) {
++			ret = item;
++			break;
++		}
++	}
++
++	return ret;
++}
+ s32 disp_mgr_set_layer_config2_restore(struct disp_manager *mgr,
+ 			  struct disp_layer_config2 *config,
+ 			  unsigned int layer_num)
+@@ -1674,9 +1791,10 @@ s32 disp_mgr_set_layer_config2_restore(struct disp_manager *mgr,
+ 		struct disp_layer_config2 *config1 = config;
+ 		struct fb_address_transfer fb;
+ 		struct disp_device_dynamic_config dconf;
+-
++		struct disp_layer_id layer_id;
+ 
+ 		num_layers = bsp_disp_feat_get_num_layers(mgr->disp);
++		layer_id.disp = mgr->disp;
+ 
+ 		memset(&dconf, 0, sizeof(struct disp_device_dynamic_config));
+ 
+@@ -1711,7 +1829,14 @@ s32 disp_mgr_set_layer_config2_restore(struct disp_manager *mgr,
+ 			if (lyr_cfg->config.info.mode == LAYER_MODE_COLOR)
+ 				continue;
+ 
+-			item = &back_dma_item[mgr->disp][0];
++			layer_id.channel = lyr_cfg->config.channel;
++			layer_id.layer_id = lyr_cfg->config.layer_id;
++			layer_id.type = 1;
++			item = disp_mgr_dmabuf_list_find_latest(mgr, &layer_id);
++			if (item == NULL) {
++				pr_info("set_layer_config2_restore fail, dmabuf not found!\n");
++				continue;
++			}
+ 
+ 			fb.format = lyr_cfg->config.info.fb.format;
+ 			memcpy(fb.size, lyr_cfg->config.info.fb.size,
+@@ -1734,7 +1859,12 @@ s32 disp_mgr_set_layer_config2_restore(struct disp_manager *mgr,
+ 
+ 			/* get dma_buf for right image buffer */
+ 			if (lyr_cfg->config.info.fb.flags == DISP_BF_STEREO_FP) {
+-				item = &back_dma_item[mgr->disp][1];
++				layer_id.type = 2;
++				item = disp_mgr_dmabuf_list_find_latest(mgr, &layer_id);
++				if (item == NULL) {
++					pr_info("set_layer_config2_restore fail, dmabuf not found!\n");
++					continue;
++				}
+ 				fb.dma_addr = item->dma_addr;
+ 				disp_set_fb_info(&fb, false);
+ 				lyr_cfg->config.info.fb.trd_right_addr[0] =
+@@ -1787,7 +1917,12 @@ s32 disp_mgr_set_layer_config2_restore(struct disp_manager *mgr,
+ 			if (!lyr_cfg->config.info.atw.used)
+ 				continue;
+ 
+-			item = &back_dma_item[mgr->disp][2];
++			layer_id.type = 4;
++			item = disp_mgr_dmabuf_list_find_latest(mgr, &layer_id);
++			if (item == NULL) {
++				pr_info("set_layer_config2_restore fail, dmabuf not found!\n");
++				continue;
++			}
+ 			lyr_cfg->config.info.atw.cof_addr = item->dma_addr;
+ 
+ 
+@@ -1815,20 +1950,18 @@ static s32 disp_mgr_is_address_using(u32 layer_num, struct dmabuf_item *item,
+ 		if (lyr_addr[i].lyr_id.disp == item->lyr_id.disp &&
+ 		    lyr_addr[i].lyr_id.channel == item->lyr_id.channel &&
+ 		    lyr_addr[i].lyr_id.layer_id == item->lyr_id.layer_id) {
+-			if (lyr_addr[i].lyr_id.type == item->lyr_id.type) {
+-				if (item->lyr_id.type & 0x1)
+-					if (lyr_addr[i].dma_addr ==
+-					    item->dma_addr)
+-						return 1;
+-				if (item->lyr_id.type & 0x2)
+-					if (lyr_addr[i].trd_addr ==
+-					    item->dma_addr)
+-						return 1;
+-				if (item->lyr_id.type & 0x4)
+-					if (lyr_addr[i].atw_addr ==
+-					    item->dma_addr)
+-						return 1;
+-			}
++			if (item->lyr_id.type & 0x1)
++				if (lyr_addr[i].dma_addr ==
++				    item->dma_addr)
++					return 1;
++			if (item->lyr_id.type & 0x2)
++				if (lyr_addr[i].trd_addr ==
++				    item->dma_addr)
++					return 1;
++			if (item->lyr_id.type & 0x4)
++				if (lyr_addr[i].atw_addr ==
++				    item->dma_addr)
++					return 1;
+ 		}
+ 	}
+ 
+@@ -1866,10 +1999,10 @@ static void disp_unmap_dmabuf(struct disp_manager *mgr, struct disp_manager_priv
+ 	struct disp_layer_address *lyr_addr = NULL;
+ 	struct dmabuf_item *item, *tmp;
+ 	int i;
+-	lyr_addr = kmalloc_array(num_layers, sizeof(struct disp_manager),
++	lyr_addr = kmalloc_array(num_layers, sizeof(struct disp_layer_address),
+ 			     GFP_KERNEL | __GFP_ZERO);
+ 
+-	lyr_cfg = disp_mgr_get_layer_cfg_head(mgr);
++	lyr_cfg = disp_mgr_get_layer_cfg_head_bak(mgr);
+ 	for (i = 0; i < num_layers; ++i, ++lyr_cfg) {
+ 
+ 		if (lyr_cfg->config.enable == 0)
+@@ -1989,14 +2122,14 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 		unsigned int layer_index = 0;
+ 		struct disp_layer_config2 *src = config;
+ 		struct disp_layer_config2 *backup = &(backup_layer2[mgr->disp][0]);
+-		backup_layer_num = layer_num;
++		backup_layer_num[mgr->disp] = layer_num;
+ 		memset(backup, 0, sizeof(struct disp_layer_config2)*16);
+ 		for (layer_index = 0; layer_index < layer_num; layer_index++) {
+ 			memcpy(backup, src, sizeof(struct disp_layer_config2));
+ 			backup++;
+ 			src++;
+ 		}
+-		_force_layer2 = 1;
++		_force_layer2[mgr->disp] = 1;
+ 	}
+ 
+ 	spin_lock_irqsave(&mgr_data_lock, flags);
+@@ -2004,7 +2137,7 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 		mgrp->unmap_dmabuf = false;
+ 		unmap = true;
+ 	}
+-	/*if vysnc comes before finish modifying lyr_cfgs, we should not unmap after vsync, or we will get uncorrect using address*/
++	/*if vysnc comes before finish modifying lyr_cfgs, we should not unmap after vsync, or we will get incorrect using address*/
+ 	mgrp->setting = true;
+ 	spin_unlock_irqrestore(&mgr_data_lock, flags);
+ 
+@@ -2052,7 +2185,6 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 			map_err_cnt++;
+ 			continue;
+ 		}
+-		memcpy(&back_dma_item[mgr->disp][0], item, sizeof(struct dmabuf_item));
+ 		item->lyr_id.disp = mgr->disp;
+ 		item->lyr_id.channel = lyr_cfg->config.channel;
+ 		item->lyr_id.layer_id = lyr_cfg->config.layer_id;
+@@ -2083,7 +2215,6 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 		/* get dma_buf for right image buffer */
+ 		if (lyr_cfg->config.info.fb.flags == DISP_BF_STEREO_FP) {
+ 			item = disp_dma_map(lyr_cfg->config.info.atw.cof_fd);
+-			memcpy(&back_dma_item[mgr->disp][1], item, sizeof(struct dmabuf_item));
+ 			if (item == NULL) {
+ 				DE_WRN("disp dma map for right buffer fail!\n");
+ 				lyr_cfg->config.info.fb.flags = DISP_BF_NORMAL;
+@@ -2147,7 +2278,6 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 			continue;
+ 
+ 		item = disp_dma_map(lyr_cfg->config.info.atw.cof_fd);
+-		memcpy(&back_dma_item[mgr->disp][2], item, sizeof(struct dmabuf_item));
+ 		if (item == NULL) {
+ 			DE_WRN("disp dma map for atw coef fail!\n");
+ 			lyr_cfg->config.info.atw.used = 0;
+@@ -2167,7 +2297,7 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 
+ 	mgrp->dmabuf_cnt_max = (mgrp->dmabuf_cnt > mgrp->dmabuf_cnt_max) ?
+ 			mgrp->dmabuf_cnt : mgrp->dmabuf_cnt_max;
+-	if (!_force_layer_en) {
++	if (!_force_layer_en[mgr->disp]) {
+ 		if (mgr->apply)
+ 			mgr->apply(mgr);
+ 
+@@ -2182,6 +2312,11 @@ s32 disp_mgr_set_layer_config2(struct disp_manager *mgr,
+ 		}
+ 	}
+ 
++	/*for dmabuf unmap, copy to avoid modify by set_layer_config1*/
++	memcpy(disp_mgr_get_layer_cfg_head_bak(mgr),
++		disp_mgr_get_layer_cfg_head(mgr),
++		sizeof(struct disp_layer_config_data) * num_layers);
++
+ 	/* finish modifying lyr_cfgs, vsync update register will make sw_reg == hw_reg == lyr_cfgs*/
+ 	spin_lock_irqsave(&mgr_data_lock, flags);
+ 	mgrp->setting = false;
+@@ -2537,7 +2672,6 @@ static s32 disp_mgr_enable(struct disp_manager *mgr)
+ 	dev_config.bits = DISP_DATA_8BITS;
+ 	dev_config.eotf = DISP_EOTF_GAMMA22;
+ 	dev_config.cs = DISP_BT601_F;
+-	dev_config.dvi_hdmi = DISP_HDMI;
+ 	dev_config.range = DISP_COLOR_RANGE_16_235;
+ 	dev_config.scan = DISP_SCANINFO_NO_DATA;
+ 	dev_config.aspect_ratio = 8;
+@@ -3166,7 +3300,6 @@ disp_mgr_set_rtwb_layer(struct disp_manager *mgr,
+ 			map_err_cnt++;
+ 			continue;
+ 		}
+-		memcpy(&back_dma_item[mgr->disp][0], item, sizeof(struct dmabuf_item));
+ 		item->lyr_id.disp = mgr->disp;
+ 		item->lyr_id.channel = lyr_cfg->config.channel;
+ 		item->lyr_id.layer_id = lyr_cfg->config.layer_id;
+@@ -3197,7 +3330,6 @@ disp_mgr_set_rtwb_layer(struct disp_manager *mgr,
+ 		/* get dma_buf for right image buffer */
+ 		if (lyr_cfg->config.info.fb.flags == DISP_BF_STEREO_FP) {
+ 			item = disp_dma_map(lyr_cfg->config.info.atw.cof_fd);
+-			memcpy(&back_dma_item[mgr->disp][1], item, sizeof(struct dmabuf_item));
+ 			if (item == NULL) {
+ 				DE_WRN("disp dma map for right buffer fail!\n");
+ 				lyr_cfg->config.info.fb.flags = DISP_BF_NORMAL;
+@@ -3261,7 +3393,6 @@ disp_mgr_set_rtwb_layer(struct disp_manager *mgr,
+ 			continue;
+ 
+ 		item = disp_dma_map(lyr_cfg->config.info.atw.cof_fd);
+-		memcpy(&back_dma_item[mgr->disp][2], item, sizeof(struct dmabuf_item));
+ 		if (item == NULL) {
+ 			DE_WRN("disp dma map for atw coef fail!\n");
+ 			lyr_cfg->config.info.atw.used = 0;
+@@ -3307,3 +3438,10 @@ disp_mgr_set_rtwb_layer(struct disp_manager *mgr,
+ 	return ret;
+ }
+ #endif
++
++void disp_pq_force_flush(int disp)
++{
++	if (mgrs != NULL && disp < bsp_disp_feat_get_num_screens()) {
++		disp_mgr_force_apply(&mgrs[disp]);
++	}
++}
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.h b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.h
+index 628d00ab0..7371e47de 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_manager.h
+@@ -31,5 +31,6 @@ s32 disp_mgr_set_rtwb_layer(struct disp_manager *mgr,
+ 			    struct disp_layer_config2 *config,
+ 			    struct disp_capture_info2 *p_cptr_info,
+ 			    unsigned int layer_num);
++int disp_get_current_output_format_by_device_type(u32 disp);
+ 
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/include.h b/drivers/video/fbdev/sunxi/disp2/disp/de/include.h
+index c61558bdd..22e0be8a3 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/include.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/include.h
+@@ -59,6 +59,7 @@
+ #include <linux/dma-mapping.h>
+ #include <asm/barrier.h>
+ #include <linux/clk-provider.h>
++#include <linux/sunxi-sid.h>
+ 
+ #include <video/sunxi_display2.h>
+ #include <video/sunxi_metadata.h>
+@@ -498,6 +499,21 @@ struct disp_enhance_config {
+ 	enum disp_enhance_dirty_flags flags;
+ };
+ 
++struct peak_pq_cfg {
++	u32 hp_ratio;
++	u32 bp0_ratio;
++	u32 bp1_ratio;
++	u32 corth;
++	u32 neg_gain;
++	u32 dif_up;
++	u32 beta;
++	u32 gain;
++};
++
++struct g_pq_cfg {
++	struct peak_pq_cfg peak;
++};
++
+ enum disp_smbl_dirty_flags {
+ 	SMBL_DIRTY_NONE = 0x00000000,
+ 	SMBL_DIRTY_ENABLE = 0x00000001,
+@@ -1098,6 +1114,8 @@ struct disp_device {
+ 	s32 (*pin_cfg)(struct disp_device *dispdev, u32 bon);
+ 	s32 (*set_gamma_tbl)(struct disp_device *dispdev, u32 *tbl,
+ 			      u32 size);
++	s32 (*get_gamma_tbl)(struct disp_device *dispdev, u32 *tbl,
++			      u32 size);
+ 	s32 (*enable_gamma)(struct disp_device *dispdev);
+ 	s32 (*disable_gamma)(struct disp_device *dispdev);
+ 	s32 (*set_color_temperature)(struct disp_device *dispdev, s32 color_temperature);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
+index a8783eda7..a1d09d51d 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_sun50iw1/disp_al.c
+@@ -272,7 +272,7 @@ static struct lcd_clk_info clk_tbl[] = {
+ 	{LCD_IF_HV,     6, 1, 1, 0},
+ 	{LCD_IF_CPU,   12, 1, 1, 0},
+ 	{LCD_IF_LVDS,   7, 1, 1, 0},
+-	{LCD_IF_DSI,    6, 1, 6, 88000000},
++	{LCD_IF_DSI,    4, 1, 4, 148500000},
+ };
+ /* lcd */
+ /* lcd_dclk_freq * div -> lcd_clk_freq * div2 -> pll_freq */
+@@ -290,7 +290,7 @@ int disp_al_lcd_get_clk_info(u32 screen_id, struct lcd_clk_info *info, struct di
+ 		__wrn("panel is NULL\n");
+ 		return 0;
+ 	}
+-	
++
+ 	for (i = 0; i < sizeof(clk_tbl)/sizeof(struct lcd_clk_info); i++) {
+ 		if (clk_tbl[i].lcd_if == panel->lcd_if) {
+ 			tcon_div = clk_tbl[i].tcon_div;
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dcsc.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dcsc.c
+index 9bd047572..6b4ad1d18 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dcsc.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dcsc.c
+@@ -26,6 +26,7 @@
+ #define CSC_ENHANCE_MODE_NUM 3
+ /* must equal to ENHANCE_MODE_NUM */
+ 
++void pq_get_enhance(struct disp_csc_config *conig);
+ static volatile struct __csc_reg_t *dcsc_dev[DE_NUM];
+ static volatile struct __csc2_reg_t *dcsc2_dev[DE_NUM];
+ static struct de_reg_blocks dcsc_coeff_block[DE_NUM];
+@@ -68,7 +69,9 @@ int de_dcsc_apply(unsigned int sel, struct disp_csc_config *config)
+ 	config->contrast = _csc_enhance_setting[enhance_mode][1];
+ 	config->saturation = _csc_enhance_setting[enhance_mode][2];
+ 	config->hue = _csc_enhance_setting[enhance_mode][3];
+-
++#if defined(CONFIG_SUNXI_DISP2_PQ)
++	pq_get_enhance(config);
++#endif
+ 	__inf("sel=%d, in_fmt=%d, mode=%d, out_fmt=%d, mode=%d, range=%d\n",
+ 	      sel, config->in_fmt, config->in_mode, config->out_fmt,
+ 	      config->out_mode, config->out_color_range);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dsi.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dsi.c
+index c6dc0eb15..813d2b679 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dsi.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_dsi.c
+@@ -699,7 +699,9 @@ __s32 dsi_dphy_open(__u32 sel, struct disp_panel_para *panel)
+ {
+ 	u32 i = 0;
+ 	u32 lane_den = 0;
+-	void *ic_ver_addr;
++#ifdef CONFIG_ARCH_SUN50IW10
++	unsigned int ic_ver = 0;
++#endif
+ 
+ 	for (i = 0; i < panel->lcd_dsi_lane; i++)
+ 		lane_den |= (1 << i);
+@@ -742,19 +744,12 @@ __s32 dsi_dphy_open(__u32 sel, struct disp_panel_para *panel)
+ 	dphy_dev[sel]->dphy_ana3.bits.endiv = 1;
+ 	dphy_dev[sel]->dphy_ana2.bits.enck_cpu = 1;
+ 	dphy_dev[sel]->dphy_ana1.bits.reg_vttmode = 1;
+-	ic_ver_addr = NULL;
+ #ifdef CONFIG_ARCH_SUN50IW10
+-	ic_ver_addr = ioremap(0x03000024, 4);
+-	if (ic_ver_addr) {
+-		i = readl(ic_ver_addr);
+-		if ((i & 0x00000007) > 0)
+-			dphy_dev[sel]->dphy_ana1.dwval |= 0x00000020;
+-		else
+-			dphy_dev[sel]->dphy_ana1.dwval &= 0xffffffDf;
+-	} else
++	ic_ver = sunxi_get_soc_ver();
++	if (ic_ver > 0)
+ 		dphy_dev[sel]->dphy_ana1.dwval |= 0x00000020;
+-
+-	iounmap(ic_ver_addr);
++	else
++		dphy_dev[sel]->dphy_ana1.dwval &= 0xffffffDf;
+ #endif
+ 	dphy_dev[sel]->dphy_ana2.bits.enp2s_cpu = lane_den;
+ 
+@@ -945,7 +940,7 @@ static s32 dsi_basic_cfg(u32 sel, struct disp_panel_para *panel)
+ 		    dsi_start_delay;
+ 		dsi_dev[sel]->dsi_basic_ctl1.bits.video_precision_mode_align =
+ 		    1;
+-		dsi_dev[sel]->dsi_basic_ctl1.bits.video_frame_start = 0;
++		dsi_dev[sel]->dsi_basic_ctl1.bits.video_frame_start = 1;
+ 		dsi_dev[sel]->dsi_trans_start.bits.trans_start_set = 10;
+ 		dsi_dev[sel]->dsi_trans_zero.bits.hs_zero_reduce_set = 0;
+ 		dsi_dev[sel]->dsi_basic_ctl1.bits.dsi_mode = 1;
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_enhance.h b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_enhance.h
+index e0efd536f..5af5fae2a 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_enhance.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_enhance.h
+@@ -64,6 +64,8 @@ extern unsigned int g_size_bypass[DE_NUM];
+ 
+ /* peak function declaration */
+ int de_peak_set_reg_base(unsigned int sel, unsigned int chno, void *base);
++unsigned long de_peak_get_reg_base(unsigned int sel);
++unsigned long de_lti_get_reg_base(unsigned int sel, unsigned int chno, int updata);
+ int de_peak_update_regs(unsigned int sel, unsigned int chno);
+ int de_peak_init(unsigned int sel, unsigned int chno, uintptr_t reg_base);
+ int de_peak_exit(unsigned int sel, unsigned int chno);
+@@ -76,6 +78,7 @@ int de_peak_set_para(unsigned int sel, unsigned int chno, unsigned int gain,
+ 		     unsigned int hp_ratio, unsigned int bp0_ratio);
+ int de_peak_info2para(unsigned int sharp, struct de_rect window,
+ 		      struct __peak_config_data *para);
++void de_peak_set_pq_dirty(int sel);
+ 
+ /* /LTI function declaration */
+ int de_lti_set_reg_base(unsigned int sel, unsigned int chno, void *base);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_feat.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_feat.c
+index 0532998b9..977c33dc9 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_feat.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_feat.c
+@@ -145,7 +145,7 @@ static const int sun8iw20_de_is_support_vep[] = {
+ 	1,
+ 	/* DISP0 CH1 */
+ 	0,
+-	/* DISP0 CH2 */
++	/* DISP1 CH0 */
+ 	0,
+ };
+ 
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_hal.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_hal.c
+index 84b4cab40..e2315add9 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_hal.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_hal.c
+@@ -9,6 +9,7 @@
+  */
+ 
+ #include "de_hal.h"
++#include "../disp_manager.h"
+ 
+ #define EINK_DEBUG 0
+ static unsigned int g_device_fps[DE_NUM] = { 60 };
+@@ -528,7 +529,14 @@ int de_al_lyr_apply(unsigned int screen_id, struct disp_layer_config_data *data,
+ 				csc_cfg.in_fmt = (chn_is_yuv[j]) ?
+ 				    DE_YUV : DE_RGB;
+ 				csc_cfg.in_mode = cs[j];
+-				csc_cfg.out_fmt = DE_RGB;
++
++				/* Set the output format according to
++				 * the actual output format.
++				 */
++				if (direct_show_after_vep(screen_id))
++					csc_cfg.out_fmt = (u32)disp_get_current_output_format_by_device_type(screen_id);
++				else
++					csc_cfg.out_fmt = DE_RGB;
+ 				csc_cfg.out_mode = DE_BT601;
+ 
+ 				color = 0;
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lcd_sun50iw10.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lcd_sun50iw10.c
+index 90ded254c..89f53df5a 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lcd_sun50iw10.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lcd_sun50iw10.c
+@@ -136,37 +136,6 @@ s32 tcon1_tv_clk_enable(u32 sel, u32 en)
+  */
+ s32 tcon1_hdmi_clk_enable(u32 sel, u32 en)
+ {
+-	unsigned int tcon_index;
+-
+-	if (sel >= DEVICE_NUM)
+-		return -1;
+-	if (!de_feat_get_tcon_type(sel))
+-		return -1;
+-
+-	tcon_index = de_feat_get_tcon_index(sel);
+-	if (tcon_index < 0)
+-		return -1;
+-
+-	if (tcon_index == 0)
+-		lcd_top[0]->tcon_clk_gate.bits.tv0_clk_gate = en;
+-	else
+-		lcd_top[0]->tcon_clk_gate.bits.tv1_clk_gate = en;
+-
+-	if (en) {
+-		if (tcon_index == 0)
+-			lcd_top[0]->tcon_clk_gate.bits.hdmi_src = 1;
+-		else if (tcon_index == 1)
+-			lcd_top[0]->tcon_clk_gate.bits.hdmi_src = 2;
+-	} else {
+-		/* disable tcon output to hdmi */
+-		if (((tcon_index == 0)
+-		     && (lcd_top[0]->tcon_clk_gate.bits.hdmi_src == 1))
+-		    || ((tcon_index == 1)
+-			&& (lcd_top[0]->tcon_clk_gate.bits.hdmi_src == 2))) {
+-			lcd_top[0]->tcon_clk_gate.bits.hdmi_src = 0;
+-		}
+-	}
+-
+ 	return 0;
+ }
+ 
+@@ -1499,89 +1468,6 @@ s32 tcon1_cfg_ex(u32 sel, struct disp_panel_para *panel)
+ 
+ s32 tcon1_hdmi_color_remap(u32 sel, u32 onoff, u32 is_yuv)
+ {
+-#if defined(CONFIG_ARCH_SUN8IW12)
+-	if (is_yuv) {
+-		lcd_dev[sel]->tcon_ceu_coef_rr.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_rg.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_rb.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_rc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_gr.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gg.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_gb.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_br.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_bg.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bb.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_rv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_rv.bits.min = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_gv.bits.min = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_bv.bits.min = 0;
+-	} else {
+-		lcd_dev[sel]->tcon_ceu_coef_rr.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_rg.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_rb.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_rc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_gr.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gg.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gb.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_gc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_br.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bg.bits.value = 0x100;
+-		lcd_dev[sel]->tcon_ceu_coef_bb.bits.value = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bc.bits.value = 0;
+-
+-		lcd_dev[sel]->tcon_ceu_coef_rv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_rv.bits.min = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_gv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_gv.bits.min = 0;
+-		lcd_dev[sel]->tcon_ceu_coef_bv.bits.max = 255;
+-		lcd_dev[sel]->tcon_ceu_coef_bv.bits.min = 0;
+-	}
+-	lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 1;
+-#else
+-	/*
+-	 * plane sequence:
+-	 * v: 16~240
+-	 * y: 16~235
+-	 * u: 16~240
+-	 */
+-	lcd_dev[sel]->tcon_ceu_coef_rr.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_rg.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_rb.bits.value = 0x100;
+-	lcd_dev[sel]->tcon_ceu_coef_rc.bits.value = 0;
+-
+-	lcd_dev[sel]->tcon_ceu_coef_gr.bits.value = 0x100;
+-	lcd_dev[sel]->tcon_ceu_coef_gg.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_gb.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_gc.bits.value = 0;
+-
+-	lcd_dev[sel]->tcon_ceu_coef_br.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_bg.bits.value = 0x100;
+-	lcd_dev[sel]->tcon_ceu_coef_bb.bits.value = 0;
+-	lcd_dev[sel]->tcon_ceu_coef_bc.bits.value = 0;
+-
+-	lcd_dev[sel]->tcon_ceu_coef_rv.bits.max = 240;
+-	lcd_dev[sel]->tcon_ceu_coef_rv.bits.min = 16;
+-	lcd_dev[sel]->tcon_ceu_coef_gv.bits.max = 235;
+-	lcd_dev[sel]->tcon_ceu_coef_gv.bits.min = 16;
+-	lcd_dev[sel]->tcon_ceu_coef_bv.bits.max = 240;
+-	lcd_dev[sel]->tcon_ceu_coef_bv.bits.min = 16;
+-	if (onoff)
+-		lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 1;
+-	else
+-		lcd_dev[sel]->tcon_ceu_ctl.bits.ceu_en = 0;
+-
+-#endif /*endif CONFIG_SUN8 */
+-
+-
+ 	return 0;
+ }
+ 
+@@ -1642,8 +1528,7 @@ s32 tcon1_set_timming(u32 sel, struct disp_video_timings *timming)
+ 	lcd_dev[sel]->tcon1_io_tri.bits.io3_output_tri_en = 1;
+ 	lcd_dev[sel]->tcon1_io_tri.bits.data_output_tri_en = 0xffffff;
+ #endif
+-	/*select the source of hdmi*/
+-	lcd_dev[0]->tcon_mul_ctl.bits.hdmi_src = sel;
++
+ 	return 0;
+ }
+ 
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lti.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lti.c
+index 3bff9300e..bb38ce0ff 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lti.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_lti.c
+@@ -44,6 +44,14 @@ int de_lti_set_reg_base(unsigned int sel, unsigned int chno, void *base)
+ 	return 0;
+ }
+ 
++unsigned long de_lti_get_reg_base(unsigned int sel, unsigned int chno, int updata)
++{
++	if (updata) {
++		lti_block[sel][chno].dirty = 0x1;
++	}
++	return (unsigned long)lti_dev[sel][chno];
++}
++
+ int de_lti_update_regs(unsigned int sel, unsigned int chno)
+ {
+ 	if (lti_block[sel][chno].dirty == 0x1) {
+@@ -225,4 +233,9 @@ int de_lti_info2para(unsigned int sharp, struct de_rect window,
+ 
+ 	return 0;
+ }
++#else
++unsigned long de_lti_get_reg_base(unsigned int sel, unsigned int chno, int updata)
++{
++	return -1;
++}
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak.c
+index 13e34eec3..c63b463e9 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak.c
+@@ -28,6 +28,7 @@ static volatile struct __peak_reg_t *peak_dev[DE_NUM][CHN_NUM];
+ static struct de_reg_blocks peak_block[DE_NUM][CHN_NUM];
+ static struct de_reg_blocks peak_gain_block[DE_NUM][CHN_NUM];
+ 
++static unsigned char pq_dirty[DE_NUM];
+ /*******************************************************************************
+  * function       : de_peak_set_reg_base(unsigned int sel, unsigned int chno,
+  *                  unsigned int base)
+@@ -47,8 +48,29 @@ int de_peak_set_reg_base(unsigned int sel, unsigned int chno, void *base)
+ 	return 0;
+ }
+ 
++unsigned long de_peak_get_reg_base(unsigned int sel)
++{
++	//if g_fmt = yuv yuv mem.else rgb
++	return (unsigned long)peak_dev[sel][0];
++}
++
++void de_peak_set_pq_dirty(int sel)
++{
++	pq_dirty[sel] = 1;
++}
++
++void de_peak_reset_pq_dirty(int sel)
++{
++	pq_dirty[sel] = 0;
++}
++
+ int de_peak_update_regs(unsigned int sel, unsigned int chno)
+ {
++	if (pq_dirty[sel] == 1) {
++		peak_block[sel][chno].dirty = 0x1;
++		peak_gain_block[sel][chno].dirty = 0x1;
++	}
++
+ 	if (peak_block[sel][chno].dirty == 0x1) {
+ 		memcpy((void *)peak_block[sel][chno].off,
+ 		       peak_block[sel][chno].val, peak_block[sel][chno].size);
+@@ -62,6 +84,9 @@ int de_peak_update_regs(unsigned int sel, unsigned int chno)
+ 		peak_gain_block[sel][chno].dirty = 0x0;
+ 	}
+ 
++	if (pq_dirty[sel] == 1)
++		de_peak_reset_pq_dirty(sel);
++
+ 	return 0;
+ }
+ 
+@@ -241,4 +266,11 @@ int de_peak_info2para(unsigned int sharp, struct de_rect window,
+ 
+ 	return 0;
+ }
++#else
++unsigned long de_peak_get_reg_base(unsigned int sel)
++{
++	return 0;
++}
++void de_peak_set_pq_dirty(int sel)
++{}
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak_type.h b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak_type.h
+index ba8a250d4..3c56009aa 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak_type.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_peak_type.h
+@@ -170,4 +170,17 @@ struct __peak_config_data {
+ 
+ };
+ 
++struct __pq_peak_config {
++	/* peak */
++	unsigned int peak_en;
++	unsigned int gain;
++	unsigned int hp_ratio;
++	unsigned int bp0_ratio;
++	unsigned int bp1_ratio;
++	unsigned int corth;
++	unsigned int neg_gain;
++	unsigned int dif_up;
++	unsigned int beta;
++};
++
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.c
+index 616ad8409..83648b9fc 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.c
+@@ -667,11 +667,10 @@ int de_rtmx_set_lay_cfg(unsigned int sel, unsigned int chno, unsigned int layno,
+ 
+ 		de200_rtmx[sel].lbc_ovl[chno]->lbc_seg.bits.pitch = cfg->lbc_info.pitch & 0xFFFF;
+ 		de200_rtmx[sel].lbc_ovl[chno]->lbc_seg.bits.seg_bit = cfg->lbc_info.seg_bit & 0xFFFF;
+-
++		/*
+ 		de200_rtmx[sel].lbc_ovl[chno]->lbc_lay_coor.bits.ovl_coorx = cfg->layer.x;
+ 		de200_rtmx[sel].lbc_ovl[chno]->lbc_lay_coor.bits.ovl_coory = cfg->layer.y;
+-
+-
++		*/
+ 		lbc_block[sel][chno].dirty = 1;
+ 		return 0;
+ 	}
+@@ -2432,3 +2431,16 @@ int de_rtmx_get_lay_format(unsigned int sel, unsigned int chno,
+ 
+ 	return fmt;
+ }
++
++bool direct_show_after_vep(u32 sel)
++{
++	/**
++	 * When there is only one channel and only one CSC module, it is judged
++	 * that the data is directly output after passing through the CSC
++	 * module.
++	 */
++	if (de_feat_get_num_chns(sel) == 1 && de_feat_is_support_vep(sel) == 0)
++		return true;
++
++	return false;
++}
+\ No newline at end of file
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.h b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.h
+index 301012e30..bd34fb404 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_rtmx.h
+@@ -444,5 +444,6 @@ int de_rtmx_set_palette(unsigned int sel, unsigned int chno,
+ 			void *data, unsigned int num);
+ int de_rtmx_set_dither_out(unsigned int sel, unsigned int en, unsigned int fifo_3d,
+ 			unsigned int mode, unsigned int fmt);
++bool direct_show_after_vep(u32 sel);
+ 
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_vep_table.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_vep_table.c
+index c05e8c6d6..6ef371df1 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_vep_table.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/de_vep_table.c
+@@ -20,6 +20,28 @@
+  *
+  ******************************************************************************/
+ #include "de_vep_table.h"
++#include <asm/types.h>
++#include <linux/string.h>
++#include<linux/kernel.h>
++
++struct matrix4x4 {
++	__s64 x00;
++	__s64 x01;
++	__s64 x02;
++	__s64 x03;
++	__s64 x10;
++	__s64 x11;
++	__s64 x12;
++	__s64 x13;
++	__s64 x20;
++	__s64 x21;
++	__s64 x22;
++	__s64 x23;
++	__s64 x30;
++	__s64 x31;
++	__s64 x32;
++	__s64 x33;
++};
+ 
+ int y2r[192] = {
+ 	/* bt601 */
+@@ -236,3 +258,22 @@ unsigned char ce_constant_lut[256] = {
+ 	248, 248, 249, 249, 250, 250, 251, 251, 252, 252, 253, 253, 254, 254,
+ 	    255, 255,
+ };
++
++void pq_set_matrix(struct matrix4x4 *conig, int choice, int out, int write)
++{
++	if (choice > 3)
++		return;
++	if (out) {
++		if (write) {
++			memcpy((y2r + 0x20*choice), conig, sizeof(struct matrix4x4));
++		} else {
++			memcpy(conig, (y2r + 0x20*choice), sizeof(struct matrix4x4));
++		}
++	} else {
++		if (write) {
++			memcpy((r2y + 0x20*choice), conig, sizeof(struct matrix4x4));
++		} else {
++			memcpy(conig, (r2y + 0x20*choice), sizeof(struct matrix4x4));
++		}
++	}
++}
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+index ba5aa5ba7..cae4ea5e6 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+@@ -11,6 +11,7 @@
+ #include "disp_al.h"
+ #include "de_hal.h"
+ 
++void pq_get_enhance(struct disp_csc_config *conig);
+ #if defined(CONFIG_ARCH_SUN8IW12)
+ #define DISP2_TCON_TV_SYNC_POL_ISSUE
+ #endif /*endif CONFIG_ARCH_SUN8IW12P1 */
+@@ -508,26 +509,7 @@ int disp_al_manager_apply(unsigned int disp, struct disp_manager_data *data)
+ 
+ 
+ 	printk("%s ouput_type:%d\n", __func__, al_priv.output_type[al_priv.tcon_id[disp]]);
+-	if (al_priv.output_type[al_priv.tcon_id[disp]] ==
+-	    (u32) DISP_OUTPUT_TYPE_HDMI) {
+ 
+-#ifdef BYPASS_TCON_CEU
+-		tcon1_hdmi_color_remap(al_priv.tcon_id[disp], 0,
+-					       data->config.cs);
+-
+-#else
+-		/*
+-		 * If yuv output(cs != 0), remap yuv plane to (v y u) sequency
+-		 * else disable color remap function
+-		 */
+-		if (data->config.cs != 0)
+-			tcon1_hdmi_color_remap(al_priv.tcon_id[disp], 1,
+-					       data->config.cs);
+-		else
+-			tcon1_hdmi_color_remap(al_priv.tcon_id[disp], 0,
+-					       data->config.cs);
+-#endif
+-	}
+ 	de_update_clk_rate(data->config.de_freq);
+ 
+ 	return de_al_mgr_apply(disp, data);
+@@ -703,11 +685,11 @@ static struct lcd_clk_info clk_tbl[] = {
+ };
+ #else
+ static struct lcd_clk_info clk_tbl[] = {
+-	{LCD_IF_HV, 14, 1, 1, 0},
++	{LCD_IF_HV, 6, 1, 1, 0},
+ 	{LCD_IF_CPU, 12, 1, 1, 0},
+ 	{LCD_IF_LVDS, 7, 1, 1, 0},
+ #if defined(DSI_VERSION_40)
+-	{LCD_IF_DSI, 6, 1, 4, 150000000},
++	{LCD_IF_DSI, 4, 1, 4, 150000000},
+ #else
+ 	{LCD_IF_DSI, 4, 1, 4, 0},
+ #endif /*endif DSI_VERSION_40*/
+@@ -1088,93 +1070,10 @@ int disp_al_lcd_get_start_delay(u32 screen_id, struct disp_panel_para *panel)
+ 				    al_priv.tcon_type[screen_id]);
+ }
+ 
+-/* hdmi */
+-int disp_al_hdmi_enable(u32 screen_id)
+-{
+-	tcon1_hdmi_clk_enable(screen_id, 1);
+-
+-	tcon1_open(screen_id);
+-	return 0;
+-}
+-
+-int disp_al_hdmi_disable(u32 screen_id)
+-{
+-	al_priv.output_type[screen_id] = (u32) DISP_OUTPUT_TYPE_NONE;
+-
+-	tcon1_close(screen_id);
+-	tcon_exit(screen_id);
+-	tcon1_hdmi_clk_enable(screen_id, 0);
+-
+-	return 0;
+-}
+-
+-int disp_al_hdmi_cfg(u32 screen_id, struct disp_video_timings *video_info)
+-{
+-	al_priv.output_type[screen_id] = (u32) DISP_OUTPUT_TYPE_HDMI;
+-	al_priv.output_mode[screen_id] = (u32) video_info->vic;
+-	al_priv.output_fps[screen_id] =
+-	    video_info->pixel_clk / video_info->hor_total_time /
+-	    video_info->ver_total_time * (video_info->b_interlace +
+-					  1) / (video_info->trd_mode + 1);
+-	al_priv.tcon_type[screen_id] = 1;
+-
+-	de_update_device_fps(al_priv.de_id[screen_id],
+-			     al_priv.output_fps[screen_id]);
+-
+-	tcon_init(screen_id);
+-	tcon1_set_timming(screen_id, video_info);
+-#if defined(DISP2_TCON_TV_SYNC_POL_ISSUE)
+-	tcon_set_sync_pol(screen_id, !video_info->ver_sync_polarity,
+-			  !video_info->hor_sync_polarity);
+-#endif /*endif DISP2_TCON_TV_SYNC_POL_ISSUE */
+-
+-#ifdef TCON_POL_CORRECT
+-	tcon1_cfg_correct(screen_id, video_info);
+-#endif
+-
+-	printk("%s\n", __func__);
+-#ifdef BYPASS_TCON_CEU
+-	tcon1_hdmi_color_remap(screen_id, 0,
+-		       al_priv.output_cs[screen_id]);
+-#else
+-	/*
+-	 * If yuv output(cs != 0), remap yuv plane to (v y u) sequency
+-	 * else disable color remap function
+-	 */
+-	if (al_priv.output_cs[screen_id] != 0)
+-		tcon1_hdmi_color_remap(screen_id, 1,
+-				       al_priv.output_cs[screen_id]);
+-	else
+-		tcon1_hdmi_color_remap(screen_id, 0,
+-				       al_priv.output_cs[screen_id]);
+-#endif
+-	tcon1_src_select(screen_id, LCD_SRC_DE, al_priv.de_id[screen_id]);
+-
+-	return 0;
+-}
+-
+-int disp_al_hdmi_irq_enable(u32 screen_id)
+-{
+-	tcon_irq_enable(screen_id, LCD_IRQ_TCON1_VBLK);
+-
+-	return 0;
+-}
+-
+-int disp_al_hdmi_irq_disable(u32 screen_id)
+-{
+-	tcon_irq_disable(screen_id, LCD_IRQ_TCON1_VBLK);
+-
+-	return 0;
+-}
+ #if (defined CONFIG_ARCH_SUN8IW16) \
+ 	|| (defined CONFIG_ARCH_SUN8IW20) \
+ 	|| (defined CONFIG_ARCH_SUN20IW1)
+-int disp_al_hdmi_pad_sel(u32 screen_id, u32 pad)
+-{
+-	tcon_pan_sel(screen_id, pad);
+ 
+-	return 0;
+-}
+ #endif
+ /* tv */
+ int disp_al_tv_enable(u32 screen_id)
+@@ -1705,6 +1604,49 @@ void disp_al_show_builtin_patten(u32 hwdev_index, u32 patten)
+ 	tcon_show_builtin_patten(hwdev_index, patten);
+ }
+ 
++unsigned long de_get_reg_base(u32 sel, u32 *off, int need_update)
++{
++	u32 flag = *off & PQ_REG_MASK;
++	unsigned long reg_base = 0x0;
++
++	switch (flag) {
++	case PEAK_OFST:
++		reg_base = de_peak_get_reg_base(sel);
++		if (reg_base == 0) {
++			pr_err("Get PEAK reg base err!\n");
++			return 0;
++		}
++		if (need_update) {
++			de_peak_set_pq_dirty(sel);
++		}
++		*off = *off - PEAK_OFST;
++		break;
++	case LTI_OFST:
++		reg_base = de_lti_get_reg_base(sel, 0, need_update);
++		if (reg_base == 0) {
++			pr_err("Get PEAK reg base err!\n");
++			return 0;
++		}
++		*off = *off - LTI_OFST;
++		break;
++	case FCE_OFST:
++		break;
++	case ASE_OFST:
++		break;
++	case FCC_OFST:
++		break;
++	default:
++		break;
++	}
++
++	return reg_base;
++}
++
++unsigned long disp_al_get_reg_base(u32 sel, u32 *off, int updata)
++{
++	return de_get_reg_base(sel, off, updata);
++}
++
+ void disp_al_update_de_clk_rate(u32 rate)
+ {
+ 	de_update_clk_rate(rate);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.h b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.h
+index 277ceb2d4..4b1e054cb 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.h
+@@ -31,6 +31,8 @@
+ #include "disp_eink_data.h"
+ #endif
+ 
++#include "../../pq/drv_pq.h"
++
+ enum {
+ 	DISP_AL_IRQ_FLAG_FRAME_END  = DE_IRQ_FLAG_FRAME_END,
+ 	DISP_AL_IRQ_FLAG_RCQ_FINISH = DE_IRQ_FLAG_RCQ_FINISH,
+@@ -131,13 +133,6 @@ int disp_al_lcd_enable_irq(u32 screen_id, enum __lcd_irq_id_t irq_id,
+ int disp_al_lcd_disable_irq(u32 screen_id, enum __lcd_irq_id_t irq_id,
+ 			    struct disp_panel_para *panel);
+ 
+-int disp_al_hdmi_enable(u32 screen_id);
+-int disp_al_hdmi_disable(u32 screen_id);
+-int disp_al_hdmi_cfg(u32 screen_id, struct disp_video_timings *video_info);
+-int disp_al_hdmi_irq_enable(u32 screen_id);
+-int disp_al_hdmi_irq_disable(u32 screen_id);
+-int disp_al_hdmi_pad_sel(u32 screen_id, u32 pad);
+-
+ int disp_al_tv_enable(u32 screen_id);
+ int disp_al_tv_disable(u32 screen_id);
+ int disp_al_tv_cfg(u32 screen_id, struct disp_video_timings *video_info);
+@@ -259,4 +254,6 @@ static inline int disp_al_device_set_de_use_rcq(u32 screen_id, u32 use_rcq) { re
+ 
+ static inline int disp_al_device_set_output_type(u32 screen_id, u32 output_type) { return 0; }
+ 
++unsigned long disp_al_get_reg_base(u32 sel, u32 *off, int need_update);
++unsigned long de_get_reg_base(u32 sel, u32 *off, int need_update);
+ #endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.c b/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.c
+new file mode 100644
+index 000000000..d798be847
+--- /dev/null
++++ b/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.c
+@@ -0,0 +1,172 @@
++/*
++ * Allwinner SoCs display driver.
++ *
++ * Copyright (C) 2020 Allwinner.
++ *
++ * This file is licensed under the terms of the GNU General Public
++ * License version 2.  This program is licensed "as is" without any
++ * warranty of any kind, whether express or implied.
++ */
++
++#include <linux/file.h>
++#include "../dev_disp.h"
++#include <video/sunxi_display2.h>
++#include "drv_pq.h"
++
++struct pq_private_data g_pq_data;
++
++int pq_enable(u32 sel, u32 en)
++{
++	if (en)
++		g_pq_data.enabled = 1;
++	else
++		g_pq_data.enabled = 0;
++	return 0;
++}
++
++int pq_set_register(u32 sel, struct pq_reg *reg, u32 num)
++{
++	int i = 0;
++
++	g_pq_data.shadow_protect(sel, 1);
++	for (i = 0; i < num; i++) {
++		pq_set_reg(sel, reg[i].offset, reg[i].value);
++	}
++	g_pq_data.shadow_protect(sel, 0);
++	return 0;
++}
++
++int pq_get_register(u32 sel, struct pq_reg *reg, u32 num)
++{
++	int i = 0;
++
++	//need shadow protect?
++	for (i = 0; i < num; i++) {
++		pq_get_reg(sel, reg[i].offset, &reg[i].value);
++	}
++
++	return 0;
++}
++
++static int pq_ioctl(unsigned int cmd, unsigned long arg)
++{
++	int ret = -EFAULT;
++	struct pq_reg *reg;
++	unsigned long *ubuffer;
++	ubuffer = (unsigned long *)arg;
++
++	if (cmd == DISP_PQ_PROC) {
++		switch (ubuffer[0]) {
++		case PQ_SET_REG:
++			reg = (struct pq_reg *)kmalloc(sizeof(struct pq_reg) * ubuffer[3], GFP_KERNEL);
++			if (copy_from_user(reg, (void __user *)ubuffer[2],
++						sizeof(struct pq_reg) * ubuffer[3])) {
++				pr_err("regs copy from user failed!\n");
++				return -1;
++			}
++			ret = pq_set_register((u32)ubuffer[1], reg, (u32)ubuffer[3]);
++			if (ret < 0) {
++				pr_err("pq set register failed!\n");
++				ret = -EFAULT;
++			}
++			kfree(reg);
++			reg = NULL;
++			break;
++		case PQ_GET_REG:
++			reg = (struct pq_reg *)kzalloc(sizeof(struct pq_reg) * ubuffer[3],  GFP_KERNEL);
++			if (reg == NULL) {
++				pr_err("PQ GET REG malloc failed!\n");
++				return -1;
++			}
++			if (copy_from_user(reg, (void __user *)ubuffer[2],
++						sizeof(struct pq_reg) * ubuffer[3])) {
++				pr_err("regs copy from user failed!\n");
++				return -1;
++			}
++
++			ret = pq_get_register((u32)ubuffer[1], reg, ubuffer[3]);
++			if (ret) {
++				pr_err("GET PQ REG failed\n");
++				ret = -EFAULT;
++			}
++
++			if (copy_to_user((void __user *)ubuffer[2], reg,
++						sizeof(struct pq_reg) * ubuffer[3])) {
++				pr_err("copy to user REG failed!\n");
++				ret = -EFAULT;
++			}
++			kfree(reg);
++			reg = NULL;
++			break;
++		case PQ_ENABLE:
++			ret = pq_enable(ubuffer[1], ubuffer[2]);
++			break;
++		case PQ_COLOR_MATRIX:
++		{
++			struct color_matrix pq_mat;
++			struct color_enhanc pq_ehance;
++			ret = 0;
++			if (copy_from_user(&pq_mat, (void __user *)ubuffer[2],
++						sizeof(struct color_matrix))) {
++				pr_err("pq color_matrix copy from user failed!\n");
++				return -1;
++			}
++			if (pq_mat.cmd == 0) {
++				if (copy_from_user(&pq_ehance, (void __user *)ubuffer[2],
++							sizeof(struct color_enhanc))) {
++					pr_err("pq color_enhanc copy from user failed!\n");
++					return -1;
++				}
++				pq_set_enhance(&pq_ehance, pq_mat.read);
++				if (pq_mat.read) {
++					if (copy_to_user((void __user *)ubuffer[2], &pq_ehance,
++							sizeof(struct color_enhanc))) {
++						pr_err("copy color_enhanc to user REG failed!\n");
++						ret = -EFAULT;
++					}
++				}
++			} else {
++				struct matrix_user *mu =
++					(struct matrix_user *)kzalloc(sizeof(struct matrix_user), GFP_KERNEL);
++				if (mu == NULL) {
++					pr_err("PQ matrix_user malloc failed!\n");
++					return -1;
++				}
++				if (copy_from_user(mu, (void __user *)ubuffer[2],
++							sizeof(struct matrix_user))) {
++					pr_err("pq matrix_user copy from user failed!\n");
++					kfree(mu);
++					return -1;
++				}
++				pq_set_matrix(&mu->matrix, mu->choice, pq_mat.cmd - 1, !pq_mat.read);
++				if (pq_mat.read) {
++					if (copy_to_user((void __user *)ubuffer[2], mu,
++							sizeof(struct matrix_user))) {
++						pr_err("copy matrix_user to user REG failed!\n");
++						ret = -EFAULT;
++					}
++				}
++				kfree(mu);
++			}
++			disp_pq_force_flush(ubuffer[1]);
++		}
++		break;
++		default:
++			pr_warn("pq give a err ioctl%lu.\n", ubuffer[0]);
++		}
++	}
++	return ret;
++}
++
++s32 pq_init(struct disp_bsp_init_para *para)
++{
++
++	printk("[%s]+++\n", __func__);
++	disp_register_ioctl_func(DISP_PQ_PROC, pq_ioctl);
++#if defined(CONFIG_COMPAT)
++	disp_register_compat_ioctl_func(DISP_PQ_PROC, pq_ioctl);
++#endif
++	g_pq_data.shadow_protect = para->shadow_protect;
++
++	return 0;
++}
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.h b/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.h
+new file mode 100644
+index 000000000..76600b5f1
+--- /dev/null
++++ b/drivers/video/fbdev/sunxi/disp2/disp/pq/drv_pq.h
+@@ -0,0 +1,97 @@
++/*
++ * Allwinner SoCs display driver.
++ *
++ * Copyright (C) 2020 Allwinner.
++ *
++ * This file is licensed under the terms of the GNU General Public
++ * License version 2.  This program is licensed "as is" without any
++ * warranty of any kind, whether express or implied.
++ */
++
++#ifndef __DRV_PQ_H__
++#define __DRV_PQ_H__
++
++#define PQ_REG_MASK 0xff000
++
++struct matrix4x4 {
++	__s64 x00;
++	__s64 x01;
++	__s64 x02;
++	__s64 x03;
++	__s64 x10;
++	__s64 x11;
++	__s64 x12;
++	__s64 x13;
++	__s64 x20;
++	__s64 x21;
++	__s64 x22;
++	__s64 x23;
++	__s64 x30;
++	__s64 x31;
++	__s64 x32;
++	__s64 x33;
++};
++
++enum choice{
++	BT601_F2F,
++	BT709_F2F,
++	YCC,
++	ENHANCE,
++	NUM_SUM,
++};
++
++struct matrix_user {
++	int cmd;
++	int read;
++	int choice;
++	struct matrix4x4 matrix;
++};
++
++struct color_enhanc {
++	int cmd;
++	int read;
++	int contrast;
++	int brightness;
++	int saturation;
++	int hue;
++};
++
++struct color_matrix {
++	int cmd;
++	int read;
++};
++
++enum {
++	PQ_SET_REG = 0x1,
++	PQ_GET_REG = 0x2,
++	PQ_ENABLE = 0x3,
++	PQ_COLOR_MATRIX = 0x4,
++};
++
++struct pq_private_data {
++	bool enabled;
++	s32 (*shadow_protect)(u32 sel, bool protect);
++};
++
++struct pq_reg {
++	u32 offset;
++	u32 value;
++};
++
++enum pq_block_flag {
++	OP_NONE = 0,
++	OP_PEAK = 0x1,
++	OP_FTC = 0x2,
++	OP_CE = 0x4,
++	OP_BWS = 0x8,
++	OP_LTI = 0x10,
++	OP_FCC = 0x20,
++	OP_GAMMA = 0x40,
++};
++
++void pq_set_reg(u32 sel, u32 off, u32 value);
++void pq_get_reg(u32 sel, u32 offset, u32 *value);
++void pq_set_matrix(struct matrix4x4 *conig, int choice, int out, int write);
++void pq_set_enhance(struct color_enhanc *pq_enh, int read);
++void disp_pq_force_flush(int disp);
++#endif
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/pq/pq_common.c b/drivers/video/fbdev/sunxi/disp2/disp/pq/pq_common.c
+new file mode 100644
+index 000000000..403fe5a60
+--- /dev/null
++++ b/drivers/video/fbdev/sunxi/disp2/disp/pq/pq_common.c
+@@ -0,0 +1,72 @@
++/*
++ * Allwinner SoCs display driver.
++ *
++ * Copyright (C) 2020 Allwinner.
++ *
++ * This file is licensed under the terms of the GNU General Public
++ * License version 2.  This program is licensed "as is" without any
++ * warranty of any kind, whether express or implied.
++ */
++
++#include <linux/spinlock.h>
++#include "../de/disp_private.h"
++
++static struct color_enhanc pq_enhance = {
++	0, 0, 50, 50, 50, 50
++};
++
++void de_set_pq_reg(unsigned long addr, u32 off, u32 value)
++{
++	pr_info("addr = 0x%lx, off = 0x%x, value = 0x%x\n", addr, off, value);
++	*((unsigned int *)((void *)addr + off)) = value;
++	return;
++}
++
++void de_get_pq_reg(unsigned long addr, u32 off, u32 *value)
++{
++	*value = *((unsigned int *)((void *)addr + off));
++	return;
++}
++
++void pq_set_reg(u32 sel, u32 off, u32 value)
++{
++	unsigned long reg_base = 0;
++	//shadow_protect
++	reg_base = disp_al_get_reg_base(sel, &off, 1);
++	if (reg_base)
++		de_set_pq_reg(reg_base, off, value);
++	else
++		pr_err("Something err,set reg failed\n");
++
++	return;
++}
++
++void pq_get_reg(u32 sel, u32 offset, u32 *value)
++{
++	unsigned long reg_base = 0;
++	//shadow_protect
++	reg_base = disp_al_get_reg_base(sel, &offset, 0);
++	if (reg_base)
++		de_get_pq_reg(reg_base, offset, value);
++	else
++		pr_err("Something err,Get reg failed\n");
++}
++
++void pq_get_enhance(struct disp_csc_config *conig)
++{
++	conig->brightness = pq_enhance.brightness;
++	conig->contrast = pq_enhance.contrast;
++	conig->saturation = pq_enhance.saturation;
++	conig->hue = pq_enhance.hue;
++}
++
++void pq_set_enhance(struct color_enhanc *pq_enh, int read)
++{
++	if (read) {
++		*pq_enh = pq_enhance;
++	} else {
++		pq_enhance = *pq_enh;
++	}
++}
++
++
+-- 
+2.34.1
+

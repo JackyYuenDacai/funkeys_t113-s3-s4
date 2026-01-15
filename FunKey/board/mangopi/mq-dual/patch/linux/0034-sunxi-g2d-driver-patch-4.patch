@@ -1,0 +1,28 @@
+From ed84baf589472a28c4f31809d9d17c41170e7562 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 16:36:30 +0800
+Subject: [PATCH] sunxi g2d driver-patch-4
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/Makefile | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/Makefile b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+index d2ebe5afe..7f6051f37 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/Makefile
++++ b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+@@ -26,10 +26,6 @@ disp-$(CONFIG_SUNXI_DISP2_FB_HW_ROTATION_SUPPORT) += fb_g2d_rot.o
+ 
+ disp-objs += lcd/panels.o lcd/lcd_source.o lcd/default_panel.o
+ disp-objs += of_service.o de/lcd_debug.o
+-disp-objs += lcd/mipi_10_800x1280.o
+-disp-objs += lcd/mipi_10_800x1280_AT101DS40I.o
+-disp-objs += lcd/mipi_8_800x1280.o
+-disp-objs += lcd/mipi_5_720x1280.o
+ disp-objs += lcd/g1392.o
+ 
+ disp-$(CONFIG_LCD_SUPPORT_HE0801A068) += lcd/he0801a068.o
+-- 
+2.34.1
+

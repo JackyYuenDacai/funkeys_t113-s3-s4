@@ -1,0 +1,62 @@
+From 0c76b84e4abd0c93112d1536c1ce4b6d97e0921e Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sat, 10 Jan 2026 02:18:27 +0800
+Subject: [PATCH 17/31] fix-pane-19
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c |  9 ++++++---
+ drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c   | 10 ++++++----
+ 2 files changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+index 0fa5928ef..4943573e0 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+@@ -823,9 +823,12 @@ static ssize_t disp_boot_para_show(struct device *dev,
+ 		disp_boot_para_parse("init_disp"),
+ 		disp_boot_para_parse("tv_vdid"),
+ 		disp_boot_para_parse("fb_base"),
+-		g_disp_drv.disp_init.output_type[0], g_disp_drv.disp_init.output_mode[0],
+-		g_disp_drv.disp_init.output_format[0], g_disp_drv.disp_init.output_bits[0],
+-		g_disp_drv.disp_init.output_cs[0], g_disp_drv.disp_init.output_eotf[0]);
++		g_disp_drv.disp_init.output_type[0], 
++		g_disp_drv.disp_init.output_mode[0],
++		g_disp_drv.disp_init.output_format[0], 
++		g_disp_drv.disp_init.output_bits[0],
++		g_disp_drv.disp_init.output_cs[0], 
++		g_disp_drv.disp_init.output_eotf[0]);
+ #endif
+ }
+ 
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+index 389797d7f..60af3113c 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+@@ -2364,10 +2364,10 @@ s32 fb_init(struct platform_device *pdev)
+ 		g_fbi.fbinfo[i]->par = &g_fbi;
+ 		g_fbi.fbinfo[i]->var.xoffset = 0;
+ 		g_fbi.fbinfo[i]->var.yoffset = 0;
+-		g_fbi.fbinfo[i]->var.xres = 800;
+-		g_fbi.fbinfo[i]->var.yres = 480;
+-		g_fbi.fbinfo[i]->var.xres_virtual = 800;
+-		g_fbi.fbinfo[i]->var.yres_virtual = 480 * 2;
++		g_fbi.fbinfo[i]->var.xres = 1080;
++		g_fbi.fbinfo[i]->var.yres = 1240;
++		g_fbi.fbinfo[i]->var.xres_virtual = 1080;
++		g_fbi.fbinfo[i]->var.yres_virtual = 1240 * 2;
+ 		g_fbi.fbinfo[i]->var.nonstd = 0;
+ 		g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
+ 		g_fbi.fbinfo[i]->var.transp.length = 8;
+@@ -2473,6 +2473,8 @@ s32 fb_init(struct platform_device *pdev)
+ 				fb_para.output_height,
+ 				g_fbi.fbinfo[i]->var.bits_per_pixel,
+ 				fb_para.buffer_num);
++			g_fbi.fbinfo[i]->var.bits_per_pixel = 24;
++			fb_para.bpp = 24;
+ 			ret = display_fb_request(i, &fb_para);
+ 			if (ret)
+ 				break;
+-- 
+2.34.1
+

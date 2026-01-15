@@ -1,0 +1,29 @@
+From 0929b373c59bfe492dffd9fdf241ae768161cd5d Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 16:34:27 +0800
+Subject: [PATCH] sunxi g2d driver-patch-3
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ include/video/sunxi_display2.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/include/video/sunxi_display2.h b/include/video/sunxi_display2.h
+index 599348523..122518ef5 100644
+--- a/include/video/sunxi_display2.h
++++ b/include/video/sunxi_display2.h
+@@ -975,6 +975,11 @@ enum tag_DISP_CMD {
+ 	DISP_EINK_GET_TEMP = 0x404,
+ 	DISP_EINK_OVERLAP_SKIP = 0x405,
+ 	DISP_EINK_UPDATE2 = 0x406,
++
++	/* --- pq --- */
++	DISP_PQ_PROC = 0x500,
++	DISP_LCD_GET_GAMMA_TABLE = 0x501,
++
+ };
+ 
+ enum {
+-- 
+2.34.1
+

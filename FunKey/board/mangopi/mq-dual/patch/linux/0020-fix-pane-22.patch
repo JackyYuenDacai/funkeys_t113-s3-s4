@@ -1,0 +1,101 @@
+From 178fd769abbe571be18b7eea039c2409bc86d5cd Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Sun, 11 Jan 2026 17:46:58 +0800
+Subject: [PATCH 20/31] fix-pane-22
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ .../fbdev/sunxi/disp2/disp/de/disp_lcd.c      | 48 ++++++++++++++++++-
+ .../disp2/disp/de/lowlevel_v2x/disp_al.c      |  2 +-
+ 2 files changed, 47 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index ff3badba1..f193adbf0 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -753,8 +753,16 @@ static s32 lcd_clk_config(struct disp_device *lcd)
+ 
+ 		DE_WRN
+ 		    ("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
+-		     lcd->disp, pll_rate, lcd_rate, dclk_rate, dsi_rate,
+-		     pll_rate_set, lcd_rate_set, dclk_rate_set, dsi_rate_set);
++		     lcd->disp, 
++			 pll_rate, 
++			 lcd_rate, 
++			 dclk_rate, 
++			 dsi_rate,
++
++		     pll_rate_set, 
++			 lcd_rate_set, 
++			 dclk_rate_set, 
++			 dsi_rate_set);
+ 	}
+ 	DE_WRN
+ 		("disp %d, clk: pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n     clk real:pll(%ld),clk(%ld),dclk(%ld) dsi_rate(%ld)\n",
+@@ -3115,7 +3123,42 @@ static u32 disp_lcd_usec_before_vblank(struct disp_device *dispdev)
+ exit:
+ 	return usec;
+ }
++typedef struct
++{
++	volatile unsigned int Timing0;
++	volatile unsigned int Timing1;
++	volatile unsigned int Timing2;
++	volatile unsigned int Timing3;
++}RegTypeDef;
++
++static void set_lcd_timings(unsigned int dwLcdRegBase, struct disp_video_timings* pTimings)
++{
++	RegTypeDef* reg;
++	unsigned int dwWidth, dwHeight;
++	unsigned int dwHT, dwHBP;
++	unsigned int dwVT, dwVBP;
++	unsigned int dwHSPW, dwVSPW;
+ 
++	reg = (RegTypeDef*)(dwLcdRegBase + 0x48);
++	
++	dwWidth = pTimings->x_res;
++	dwHSPW = pTimings->hor_sync_time;
++	dwHBP = pTimings->hor_back_porch + pTimings->hor_sync_time;	//在官方文档里：hbp = hbp + hspw，然而在全志的代码里面又将hspw其减去，所以在这里需要加回来
++	dwHT = pTimings->hor_total_time;
++
++	dwHeight = pTimings->y_res;;
++	dwVSPW = pTimings->ver_sync_time;
++	dwVBP = pTimings->ver_back_porch + pTimings->ver_sync_time;
++	dwVT = pTimings->ver_total_time;
++
++	reg->Timing0 = ((dwWidth - 1) << 16) | (dwHeight - 1);
++	reg->Timing1 = ((dwHT - 1) << 16) | (dwHBP - 1);
++	reg->Timing2 = (((dwVT - 1) * 2) << 16) | (dwVBP - 1);
++	reg->Timing3 = ((dwHSPW - 1) << 16) | (dwVSPW - 1);
++
++	printk("width: %d, hspw: %d, hbp: %d, ht: %d\n", dwWidth, dwHSPW, dwHBP, dwHT);
++	printk("height: %d, vspw: %d, vbp: %d, vt: %d\n", dwHeight, dwVSPW, dwVBP, dwVT);
++}
+ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ {
+ 	u32 num_devices;
+@@ -3267,6 +3310,7 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 			  disp_close_eink_panel_task);
+ #endif
+ 		printk("disp_lcd_init caller ...\n");
++		set_lcd_timings(para->reg_base[DISP_MOD_LCD0], &lcd->timings);
+ 		disp_lcd_init(lcd, lcd->disp);
+ 		printk("disp_device_register caller ...\n");
+ 		disp_device_register(lcd);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+index b5a103992..ba5aa5ba7 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/lowlevel_v2x/disp_al.c
+@@ -707,7 +707,7 @@ static struct lcd_clk_info clk_tbl[] = {
+ 	{LCD_IF_CPU, 12, 1, 1, 0},
+ 	{LCD_IF_LVDS, 7, 1, 1, 0},
+ #if defined(DSI_VERSION_40)
+-	{LCD_IF_DSI, 6, 1, 6, 88000000},
++	{LCD_IF_DSI, 6, 1, 4, 150000000},
+ #else
+ 	{LCD_IF_DSI, 4, 1, 4, 0},
+ #endif /*endif DSI_VERSION_40*/
+-- 
+2.34.1
+

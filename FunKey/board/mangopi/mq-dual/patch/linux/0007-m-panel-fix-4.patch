@@ -1,0 +1,56 @@
+From f9c96fee727951962db5079ab76f05ae4c603aad Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 15:03:45 +0800
+Subject: [PATCH 07/31] m-panel-fix-4
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c | 4 ++--
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c     | 3 ++-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+index c91a83034..5c233de7d 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+@@ -17,7 +17,7 @@
+ #include "disp_display.h"
+ #include "disp_rtwb.h"
+ #include "../disp_trace.h"
+-
++#include <linux/pm_runtime.h>
+ struct disp_dev_t gdisp;
+ 
+ s32 bsp_disp_init(struct disp_bsp_init_para *para)
+@@ -35,7 +35,7 @@ s32 bsp_disp_init(struct disp_bsp_init_para *para)
+ 		tasklet_init(&gdisp.screen[disp].tasklet, disp_tasklet,
+ 			     (unsigned long)disp);
+ 	}
+-
++	printk("bsp_disp_init start\n");
+ 	disp_init_al(para);
+ #if defined (DE_VERSION_V33X)
+ 	disp_al_init_tcon(para);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index 1ef6cf37f..e30d7fbad 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -3106,13 +3106,14 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 	u32 num_devices_support_lcd = 0;
+ #if defined(SUPPORT_DSI)
+ 	u32 i = 0, index_base;
++	printk("disp_init_lcd start SUPPORT_DSI...\n");
+ #endif
+ #if defined(CONFIG_ARCH_SUN8IW17P1)
+ 	char primary_key[20];
+ 	int ret = 0, value = 1;
+ 	s32 use_dsi_flag = 0;
+ #endif
+-
++	printk("disp_init_lcd start ...\n");
+ 	DE_INF("disp_init_lcd\n");
+ 
+ 	spin_lock_init(&lcd_data_lock);
+-- 
+2.34.1
+

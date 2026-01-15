@@ -1,0 +1,101 @@
+From f1681b920709d8db41c7ce9a1ceba965c49639a5 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 15:38:28 +0800
+Subject: [PATCH 08/31] m-panel-fix-5
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c | 6 +++++-
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c     | 6 ++++--
+ drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c        | 2 +-
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c      | 3 ++-
+ 4 files changed, 12 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+index 5c233de7d..751597bb9 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_display.c
+@@ -171,7 +171,8 @@ s32 disp_device_attached_and_enable(int disp_mgr, int disp_dev,
+ 	struct disp_manager *mgr = NULL;
+ 	struct disp_device *dispdev = NULL;
+ 	int ret = 0;
+-
++	printk("[DEBUG] disp_device_attached_and_enable disp_mgr=%d, disp_dev=%d, type=%d\n",
++	       disp_mgr, disp_dev, config->type);
+ 	mgr = disp_get_layer_manager(disp_mgr);
+ 	if (!mgr)
+ 		return -1;
+@@ -233,6 +234,9 @@ s32 disp_device_attached_and_enable(int disp_mgr, int disp_dev,
+ 			DE_WRN("attached %s, mgr%d<-->dev%d\n",
+ 				(ret == 0) ? "ok" : "fail",
+ 				disp_mgr, disp_dev);
++			printk("[DEBUG] attached %s, mgr%d<-->dev%d\n",
++				(ret == 0) ? "ok" : "fail",
++				disp_mgr, disp_dev);
+ 			DE_WRN("type:%d,mode:%d,fmt:%s,bits:%s,eotf:%d,cs:%d dvi_hdmi:%d, range:%d scan:%d ratio:%d\n",
+ 				config->type,
+ 				config->mode,
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index e30d7fbad..3e8e5a195 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -2856,7 +2856,7 @@ static s32 disp_lcd_init(struct disp_device *lcd, int lcd_index)
+ 		DE_WRN("NULL hdl!\n");
+ 		return DIS_FAIL;
+ 	}
+-
++	printk("disp_lcd_init lcd_index=%d\n", lcd_index);
+ 	lcd_get_sys_config(lcd_index, &lcdp->lcd_cfg);
+ 
+ 	lcd_regulator_get_wrap(&lcdp->lcd_cfg);
+@@ -2864,7 +2864,7 @@ static s32 disp_lcd_init(struct disp_device *lcd, int lcd_index)
+ 	if (disp_lcd_is_used(lcd)) {
+ 		struct disp_video_timings *timmings;
+ 		struct disp_panel_para *panel_info;
+-
++		printk("disp_lcd_init lcd is used parsing panel parameters for lcd_index=%d\n", lcd_index);
+ 		lcd_parse_panel_para(lcd_index, &lcdp->panel_info);
+ 		lcdp->panel_extend_info.lcd_cmap_en = lcdp->panel_info.lcd_cmap_en;
+ 		lcdp->panel_extend_info.lcd_gamma_en = lcdp->panel_info.lcd_gamma_en;
+@@ -3244,7 +3244,9 @@ s32 disp_init_lcd(struct disp_bsp_init_para *para)
+ 		INIT_WORK(&lcd->close_eink_panel_work,
+ 			  disp_close_eink_panel_task);
+ #endif
++		printk("disp_lcd_init caller ...\n");
+ 		disp_lcd_init(lcd, lcd->disp);
++		printk("disp_device_register caller ...\n");
+ 		disp_device_register(lcd);
+ #if defined(CONFIG_DISP2_LCD_ESD_DETECT)
+ 		INIT_WORK(&lcdp->reflush_work, disp_lcd_reflush_work);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+index 4e92581e4..0fa5928ef 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+@@ -2400,7 +2400,7 @@ static s32 disp_init(struct platform_device *pdev)
+ 	}
+ 
+ 	para->feat_init.chn_cfg_mode = g_disp_drv.disp_init.chn_cfg_mode;
+-
++	_wrn("[DEBUG] bsp_disp_init callerdisp init mode=%d\n", para->feat_init.chn_cfg_mode);
+ 	bsp_disp_init(para);
+ 
+ 	/*if (bsp_disp_check_device_enabled(para) == 0)
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
+index c6af109d8..541cecc2a 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/panels.c
+@@ -146,9 +146,10 @@ void lcd_set_panel_funs(void)
+ 
+ int lcd_init(void)
+ {
++	printk("panel.c lcd_init start ...\n");
+ 	sunxi_disp_get_source_ops(&g_lcd_drv.src_ops);
+ 	lcd_set_panel_funs();
+-
++	printk("panel.c lcd_init end ...\n");
+ 	return 0;
+ }
+ 
+-- 
+2.34.1
+

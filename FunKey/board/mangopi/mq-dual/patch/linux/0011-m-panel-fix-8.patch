@@ -1,0 +1,76 @@
+From 688bb2b3096ea1f1533c65d9d6f7bd1e8fb7587b Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 21:27:55 +0800
+Subject: [PATCH 11/31] m-panel-fix-8
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c | 11 ++++++++---
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c   |  8 ++++----
+ 2 files changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+index f1363c5e3..204abafa7 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/de/disp_lcd.c
+@@ -2411,9 +2411,11 @@ static s32 disp_lcd_set_open_func(struct disp_device *lcd, LCD_FUNC func,
+ 				  u32 delay)
+ {
+ 	struct disp_lcd_private_data *lcdp = disp_lcd_get_priv(lcd);
+-
++	pr_warn("[DISP_DBG] set_open_func: lcd %d, func=%p, delay=%d\n",
++		 lcd->disp, func, delay);
+ 	if ((lcd == NULL) || (lcdp == NULL)) {
+ 		DE_WRN("NULL hdl!\n");
++		pr_warn("[DISP_DBG] set_open_func: NULL hdl!\n");
+ 		return -1;
+ 	}
+ 
+@@ -2422,7 +2424,7 @@ static s32 disp_lcd_set_open_func(struct disp_device *lcd, LCD_FUNC func,
+ 		lcdp->open_flow.func[lcdp->open_flow.func_num].delay = delay;
+ 		lcdp->open_flow.func_num++;
+ 	}
+-
++	pr_warn("[DISP_DBG] set_open_func finished\n");
+ 	return DIS_SUCCESS;
+ }
+ 
+@@ -2504,8 +2506,11 @@ s32 disp_lcd_gpio_init(struct disp_device *lcd)
+ 	/* io-pad */
+ 	for (i = 0; i < LCD_GPIO_REGU_NUM; i++) {
+ 		ret = disp_sys_power_enable(lcdp->lcd_cfg.gpio_regulator[i]);
+-		if (ret)
++		if (ret){
++			pr_warn("lcd_gpio_init fail at %d\n", i);
+ 			return DIS_FAIL;
++
++		}
+ 	}
+ 
+ 
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+index b62a33ac3..4f6c1e1fc 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+@@ -172,14 +172,14 @@ static void lcd_power_off(u32 sel)
+ 
+ static void lcd_bl_open(u32 sel)
+ {
+-	sunxi_lcd_pwm_enable(sel);
+-	sunxi_lcd_backlight_enable(sel);
++	//sunxi_lcd_pwm_enable(sel);
++	//sunxi_lcd_backlight_enable(sel);
+ }
+ 
+ static void lcd_bl_close(u32 sel)
+ {
+-	sunxi_lcd_backlight_disable(sel);
+-	sunxi_lcd_pwm_disable(sel);
++	//sunxi_lcd_backlight_disable(sel);
++	//sunxi_lcd_pwm_disable(sel);
+ }
+ 
+ #define REGFLAG_DELAY         0XFE
+-- 
+2.34.1
+

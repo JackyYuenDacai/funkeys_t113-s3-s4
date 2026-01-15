@@ -1,0 +1,38 @@
+From d1650c1d8aec55085f670422f3e1c9e0492c262e Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 21:56:51 +0800
+Subject: [PATCH] g1392-touchscreen-patch-3
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/input/touchscreen/lge_sub/touch_sub_core.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/input/touchscreen/lge_sub/touch_sub_core.c b/drivers/input/touchscreen/lge_sub/touch_sub_core.c
+index 283c09e5d..0e1608cea 100644
+--- a/drivers/input/touchscreen/lge_sub/touch_sub_core.c
++++ b/drivers/input/touchscreen/lge_sub/touch_sub_core.c
+@@ -100,6 +100,11 @@ void touch_sub_report_cancel_event(struct touch_sub_core_data *ts)
+ 
+ void touch_sub_report_event(struct touch_sub_core_data *ts)
+ {
++	printk(KERN_ERR "[TOUCH_DEBUG] input_dev=%p, vals=%p, num_vals=%u, max_vals=%u\n",
++           ts->input,
++           ts->input ? ts->input->vals : NULL,
++           ts->input ? ts->input->num_vals : 0,
++           ts->input ? ts->input->max_vals : 0);
+ 	u16 old_mask = ts->old_mask;
+ 	u16 new_mask = ts->new_mask;
+ 	u16 press_mask = 0;
+@@ -111,7 +116,7 @@ void touch_sub_report_event(struct touch_sub_core_data *ts)
+ 		 (ts->role.hide_coordinate));
+ 
+ 	TOUCH_TRACE();
+-
++	input_set_timestamp(ts->input, ktime_get());
+ 	change_mask = old_mask ^ new_mask;
+ 	press_mask = new_mask & change_mask;
+ 	release_mask = old_mask & change_mask;
+-- 
+2.34.1
+

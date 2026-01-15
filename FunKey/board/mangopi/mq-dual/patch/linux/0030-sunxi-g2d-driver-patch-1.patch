@@ -1,0 +1,1002 @@
+From b358bad47d0eb8ae580d927b96f71fc821113417 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 15:32:45 +0800
+Subject: [PATCH 30/31] sunxi g2d driver-patch-1
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/Makefile |  13 +-
+ .../video/fbdev/sunxi/disp2/disp/dev_disp.c   | 276 +++++++++++-------
+ .../video/fbdev/sunxi/disp2/disp/dev_disp.h   |   3 +-
+ .../fbdev/sunxi/disp2/disp/dev_disp_debugfs.c |   9 +-
+ drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c | 188 ++++++------
+ .../video/fbdev/sunxi/disp2/disp/fb_g2d_rot.c |   4 -
+ 6 files changed, 275 insertions(+), 218 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/Makefile b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+index 0e28060a5..d2ebe5afe 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/Makefile
++++ b/drivers/video/fbdev/sunxi/disp2/disp/Makefile
+@@ -12,7 +12,7 @@ disp-$(CONFIG_DISP2_SUNXI_COMPOSER) += dev_composer.o
+ disp-objs += de/disp_display.o de/disp_features.o de/disp_device.o \
+ 	     de/disp_lcd.o de/disp_manager.o de/disp_private.o \
+ 	     de/disp_smart_backlight.o de/disp_enhance.o de/disp_capture.o \
+-	     de/disp_hdmi.o de/disp_tv.o de/disp_vdevice.o \
++	     de/disp_tv.o de/disp_vdevice.o \
+ 	     de/disp_vga.o \
+ 	     de/disp_vdpo.o de/disp_edp.o de/disp_rtwb.o
+ disp-$(CONFIG_EINK_PANEL_USED) += de/disp_eink_manager.o \
+@@ -26,7 +26,12 @@ disp-$(CONFIG_SUNXI_DISP2_FB_HW_ROTATION_SUPPORT) += fb_g2d_rot.o
+ 
+ disp-objs += lcd/panels.o lcd/lcd_source.o lcd/default_panel.o
+ disp-objs += of_service.o de/lcd_debug.o
++disp-objs += lcd/mipi_10_800x1280.o
++disp-objs += lcd/mipi_10_800x1280_AT101DS40I.o
++disp-objs += lcd/mipi_8_800x1280.o
++disp-objs += lcd/mipi_5_720x1280.o
+ disp-objs += lcd/g1392.o
++
+ disp-$(CONFIG_LCD_SUPPORT_HE0801A068) += lcd/he0801a068.o
+ disp-$(CONFIG_EINK_PANEL_USED) += lcd/default_eink.o
+ disp-$(CONFIG_LCD_SUPPORT_LT070ME05000) += lcd/lt070me05000.o
+@@ -63,8 +68,9 @@ disp-$(CONFIG_LCD_SUPPORT_FX070) += lcd/fx070.o
+ disp-$(CONFIG_LCD_SUPPORT_K101IM2QA04) += lcd/k101im2qa04.o
+ disp-$(CONFIG_LCD_SUPPORT_CC08021801_310_800X1280) += lcd/CC08021801_310_800X1280.o
+ disp-$(CONFIG_LCD_SUPPORT_K080_IM2HYL802R_800X1280) += lcd/K080_IM2HYL802R_800X1280.o
+- 
+ disp-$(CONFIG_LCD_SUPPORT_K101_IM2BYL02_L_800X1280) += lcd/K101_IM2BYL02_L_800X1280.o
++disp-$(CONFIG_LCD_SUPPORT_NT35510_MIPI) += lcd/nt35510.o
++disp-$(CONFIG_LCD_SUPPORT_B080UAN01_MIPI1200X1920) += lcd/b080uan01_mipi1200x1920.o
+ disp-y += lcd/super_lcd_driver.o
+ 
+ disp-$(CONFIG_EINK_PANEL_USED) += de/disp_eink_manager.o \
+@@ -72,3 +78,6 @@ disp-$(CONFIG_EINK_PANEL_USED) += de/disp_eink_manager.o \
+ 		de/disp_format_convert.o lcd/default_eink.o
+ 
+ disp-objs += $(obj_low)
++
++disp-$(CONFIG_SUNXI_DISP2_PQ) += pq/drv_pq.o pq/pq_common.o
++
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+index 4943573e0..6c263f3a4 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.c
+@@ -158,12 +158,6 @@ static ssize_t disp_sys_show(struct device *dev,
+ 				esd_inf.esd_check_func_pos, esd_inf.rst_cnt);
+ 			}
+ #endif
+-		} else if (dispdev->type == DISP_OUTPUT_TYPE_HDMI) {
+-			int mode = dispdev->get_mode(dispdev);
+-
+-			count += sprintf(buf + count,
+-					 "\thdmi output mode(%d)\tfps:%d.%d",
+-					 mode, fps / 10, fps % 10);
+ 		} else if (dispdev->type == DISP_OUTPUT_TYPE_TV) {
+ 			int mode = dispdev->get_mode(dispdev);
+ 
+@@ -823,12 +817,9 @@ static ssize_t disp_boot_para_show(struct device *dev,
+ 		disp_boot_para_parse("init_disp"),
+ 		disp_boot_para_parse("tv_vdid"),
+ 		disp_boot_para_parse("fb_base"),
+-		g_disp_drv.disp_init.output_type[0], 
+-		g_disp_drv.disp_init.output_mode[0],
+-		g_disp_drv.disp_init.output_format[0], 
+-		g_disp_drv.disp_init.output_bits[0],
+-		g_disp_drv.disp_init.output_cs[0], 
+-		g_disp_drv.disp_init.output_eotf[0]);
++		g_disp_drv.disp_init.output_type[0], g_disp_drv.disp_init.output_mode[0],
++		g_disp_drv.disp_init.output_format[0], g_disp_drv.disp_init.output_bits[0],
++		g_disp_drv.disp_init.output_cs[0], g_disp_drv.disp_init.output_eotf[0]);
+ #endif
+ }
+ 
+@@ -1241,7 +1232,6 @@ static s32 parser_disp_init_para(const struct device_node *np,
+ 	} else if (value == 2) {
+ 		init_para->output_type[0] = DISP_OUTPUT_TYPE_TV;
+ 	} else if (value == 3) {
+-		init_para->output_type[0] = DISP_OUTPUT_TYPE_HDMI;
+ 	} else if (value == 4) {
+ 		init_para->output_type[0] = DISP_OUTPUT_TYPE_VGA;
+ 	} else if (value == 5) {
+@@ -1293,13 +1283,6 @@ static s32 parser_disp_init_para(const struct device_node *np,
+ 		init_para->using_device_config[0] = true;
+ 	}
+ 
+-	if (of_property_read_u32(np, "screen0_output_dvi_hdmi", &value) < 0) {
+-		__inf("of_property_read screen0_output_dvi_hdmi fail\n");
+-	} else {
+-		init_para->output_dvi_hdmi[0] = value;
+-		init_para->using_device_config[0] = true;
+-	}
+-
+ 	if (of_property_read_u32(np, "screen0_output_range", &value) < 0) {
+ 		__inf("of_property_read screen0_output_range fail\n");
+ 	} else {
+@@ -1336,7 +1319,6 @@ static s32 parser_disp_init_para(const struct device_node *np,
+ 		} else if (value == 2) {
+ 			init_para->output_type[1] = DISP_OUTPUT_TYPE_TV;
+ 		} else if (value == 3) {
+-			init_para->output_type[1] = DISP_OUTPUT_TYPE_HDMI;
+ 		} else if (value == 4) {
+ 			init_para->output_type[1] = DISP_OUTPUT_TYPE_VGA;
+ 		} else if (value == 5) {
+@@ -1389,14 +1371,6 @@ static s32 parser_disp_init_para(const struct device_node *np,
+ 			init_para->using_device_config[1] = true;
+ 		}
+ 
+-		if (of_property_read_u32(np, "screen1_output_dvi_hdmi", &value) < 0) {
+-			__inf(
+-			    "of_property_read screen1_output_dvi_hdmi fail\n");
+-		} else {
+-			init_para->output_dvi_hdmi[1] = value;
+-			init_para->using_device_config[1] = true;
+-		}
+-
+ 		if (of_property_read_u32(np, "screen1_output_range", &value) < 0) {
+ 			__inf("of_property_read screen1_output_range fail\n");
+ 		} else {
+@@ -1667,6 +1641,7 @@ void disp_ion_free(void *virt_addr, void *phys_addr, u32 num_bytes)
+ 			     ((unsigned long)virt_addr))) {
+ 				__disp_ion_free_coherent(mem);
+ 				__list_del_entry(&(ion_node->node));
++				kfree(ion_node);
+ 				found = true;
+ 				break;
+ 			}
+@@ -1705,12 +1680,6 @@ static void deinit_disp_ion_mgr(struct disp_ion_mgr *ion_mgr)
+ }
+ #endif
+ 
+-s32 disp_set_hdmi_func(struct disp_device_func *func)
+-{
+-	return bsp_disp_set_hdmi_func(func);
+-}
+-EXPORT_SYMBOL(disp_set_hdmi_func);
+-
+ s32 disp_set_edp_func(struct disp_tv_func *func)
+ {
+ 	return bsp_disp_set_edp_func(func);
+@@ -1723,12 +1692,6 @@ s32 disp_set_vdpo_func(struct disp_tv_func *func)
+ }
+ EXPORT_SYMBOL(disp_set_vdpo_func);
+ 
+-s32 disp_set_hdmi_detect(bool hpd)
+-{
+-	return bsp_disp_hdmi_set_detect(hpd);
+-}
+-EXPORT_SYMBOL(disp_set_hdmi_detect);
+-
+ s32 disp_tv_register(struct disp_tv_func *func)
+ {
+ 	return bsp_disp_tv_register(func);
+@@ -1773,7 +1736,6 @@ int disp_device_set_config(struct disp_init_para *init,
+ 	config.bits = init->output_bits[screen_id];
+ 	config.eotf = init->output_eotf[screen_id];
+ 	config.cs = init->output_cs[screen_id];
+-	config.dvi_hdmi = init->output_dvi_hdmi[screen_id];
+ 	config.range = init->output_range[screen_id];
+ 	config.scan = init->output_scan[screen_id];
+ 	config.aspect_ratio = init->output_aspect_ratio[screen_id];
+@@ -1803,12 +1765,7 @@ static void start_work(struct work_struct *work)
+ 			    g_disp_drv.disp_init.output_type[screen_id%DE_NUM];
+ 			int lcd_registered =
+ 			    bsp_disp_get_lcd_registered(screen_id);
+-			int hdmi_registered = bsp_disp_get_hdmi_registered();
+ 
+-			__inf
+-			    ("sel=%d, output_type=%d, lcd_reg=%d,hdmi_reg=%d\n",
+-			     screen_id, output_type, lcd_registered,
+-			     hdmi_registered);
+ 			if (((disp_mode == DISP_INIT_MODE_SCREEN0)
+ 			     && (screen_id == 0))
+ 			    || ((disp_mode == DISP_INIT_MODE_SCREEN1)
+@@ -1822,17 +1779,6 @@ static void start_work(struct work_struct *work)
+ 						suspend_output_type[screen_id] =
+ 						    output_type;
+ 					}
+-				} else if (output_type
+-				    == DISP_OUTPUT_TYPE_HDMI) {
+-					if (hdmi_registered &&
+-					    bsp_disp_get_output_type(screen_id)
+-					    != DISP_OUTPUT_TYPE_HDMI) {
+-						msleep(600);
+-						disp_device_set_config(
+-								       &g_disp_drv.disp_init, screen_id);
+-						suspend_output_type[screen_id] =
+-						    output_type;
+-					}
+ 				} else {
+ 					disp_device_set_config(
+ 					    &g_disp_drv.disp_init, screen_id);
+@@ -1842,9 +1788,7 @@ static void start_work(struct work_struct *work)
+ 			}
+ 		}
+ 	} else {
+-		if ((g_disp_drv.para.boot_info.type == DISP_OUTPUT_TYPE_HDMI)
+-		    && !bsp_disp_get_hdmi_registered())
+-			return;
++
+ 		if (bsp_disp_get_output_type(g_disp_drv.para.boot_info.disp) !=
+ 		    g_disp_drv.para.boot_info.type) {
+ 			bsp_disp_sync_with_hw(&g_disp_drv.para);
+@@ -2375,8 +2319,6 @@ static s32 disp_init(struct platform_device *pdev)
+ 		}
+ 	}
+ 
+-	para->boot_info.dvi_hdmi =
+-		g_disp_drv.disp_init.output_dvi_hdmi[para->boot_info.disp];
+ 	para->boot_info.range =
+ 		g_disp_drv.disp_init.output_range[para->boot_info.disp];
+ 	para->boot_info.scan =
+@@ -2403,8 +2345,11 @@ static s32 disp_init(struct platform_device *pdev)
+ 	}
+ 
+ 	para->feat_init.chn_cfg_mode = g_disp_drv.disp_init.chn_cfg_mode;
+-	_wrn("[DEBUG] bsp_disp_init callerdisp init mode=%d\n", para->feat_init.chn_cfg_mode);
++
+ 	bsp_disp_init(para);
++#if defined(CONFIG_SUNXI_DISP2_PQ)
++	pq_init(para);
++#endif
+ 
+ 	/*if (bsp_disp_check_device_enabled(para) == 0)
+ 		para->boot_info.sync = 0;
+@@ -2468,7 +2413,7 @@ static int disp_mem_request(int sel, u32 size)
+ {
+ 
+ #if IS_ENABLED(CONFIG_ION)
+-	if (sel >= DISP_MEM_NUM || !size) {
++	if (sel >= DISP_MEM_NUM || sel < 0 || !size) {
+ 		__wrn("invalid param\n");
+ 		return -EINVAL;
+ 	}
+@@ -2547,6 +2492,11 @@ static int disp_mem_request(int sel, u32 size)
+ 
+ static int disp_mem_release(int sel)
+ {
++	if (sel >= DISP_MEM_NUM || sel < 0) {
++		__wrn("invalid param\n");
++		return -EINVAL;
++	}
++
+ #if IS_ENABLED(CONFIG_ION)
+ 	if (!g_disp_mm[sel].info_base) {
+ 		__wrn("invalid param\n");
+@@ -3184,19 +3134,7 @@ static int disp_blank(bool blank)
+ 
+ 	for (screen_id = 0; screen_id < num_screens; screen_id++) {
+ 		mgr = g_disp_drv.mgr[screen_id];
+-		/* Currently remove !mgr->device condition,
+-		 * avoiding problem in the following case:
+-		 *
+-		 *   attach manager and device -> disp blank --> blank success
+-		 *   deattach manager and device -> disp unblank --> fail
+-		 *   (cause don't satisfy !mgr->device condition)
+-		 *   attach manager and device --> problem arises
+-		 *   (manager will be always on unblank state)
+-		 *
+-		 * The scenario is: hdmi plug in -> enter standy
+-		 *  -> hdmi plug out -> exit standby -> hdmi plug in
+-		 *  -> display blank on hdmi screen
+-		 */
++
+ 		if (!mgr)
+ 			continue;
+ 
+@@ -3415,7 +3353,6 @@ int disp_suspend(struct device *dev)
+ 				dispdev_suspend->suspend(dispdev_suspend);
+ 		}
+ 	}
+-	/* FIXME: hdmi suspend */
+ 	suspend_status |= DISPLAY_DEEP_SLEEP;
+ 	suspend_prestep = 1;
+ #if defined(CONFIG_PM_RUNTIME)
+@@ -3732,9 +3669,7 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 				break;
+ 
+ 			if (ubuffer[1]) {
+-#ifdef CONFIG_ARCH_SUN50IW6
+-			bsp_disp_hdmi_cec_standby_request();
+-#endif
++
+ #if defined(CONFIG_PM_RUNTIME)
+ 				if (g_disp_drv.dev)
+ 					pm_runtime_put(g_disp_drv.dev);
+@@ -3825,6 +3760,17 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		{
+ 			s32 i = 0;
+ 			struct area_info area;
++			const unsigned int lyr_cfg_size = ARRAY_SIZE(lyr_cfg);
++
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[3])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
++			if (ubuffer[1] == 0 || ubuffer[1] > lyr_cfg_size) {
++				__wrn("layer number need to be set from 1 to %d\n", lyr_cfg_size);
++				return -EFAULT;
++			}
+ 
+ 			if (!eink_manager) {
+ 				pr_err("there is no eink manager!\n");
+@@ -3861,6 +3807,17 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		{
+ 			s32 i = 0;
+ 			struct area_info area;
++			const unsigned int lyr_cfg_size = ARRAY_SIZE(lyr_cfg2);
++
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[3])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
++			if (ubuffer[1] == 0 || ubuffer[1] > lyr_cfg_size) {
++				__wrn("layer number need to be set from 1 to %d\n", lyr_cfg_size);
++				return -EFAULT;
++			}
+ 
+ 			if (!eink_manager) {
+ 				pr_err("there is no eink manager!\n");
+@@ -3960,12 +3917,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 
+ 		mutex_lock(&g_disp_drv.mlock);
+ 
+-		if (ubuffer[2] > lyr_cfg_size) {
+-			__wrn("Total layer number is %d\n", lyr_cfg_size);
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			mutex_unlock(&g_disp_drv.mlock);
++			return -EFAULT;
++		}
++		if (ubuffer[2] == 0 || ubuffer[2] > lyr_cfg_size) {
++			__wrn("layer number need to be set from 1 to %d\n", lyr_cfg_size);
+ 			mutex_unlock(&g_disp_drv.mlock);
+ 			return -EFAULT;
+ 		}
+-
+ 		if (copy_from_user(lyr_cfg,
+ 			(void __user *)ubuffer[1],
+ 			sizeof(struct disp_layer_config) * ubuffer[2]))	{
+@@ -3992,6 +3953,16 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 
+ 	case DISP_LAYER_GET_CONFIG:
+ 	{
++		const unsigned int lyr_cfg_size = ARRAY_SIZE(lyr_cfg);
++
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++		if (ubuffer[2] == 0 || ubuffer[2] > lyr_cfg_size) {
++			__wrn("layer number need to be set from 1 to %d\n", lyr_cfg_size);
++			return -EFAULT;
++		}
+ 		if (copy_from_user(lyr_cfg,
+ 			(void __user *)ubuffer[1],
+ 			sizeof(struct disp_layer_config) * ubuffer[2]))	{
+@@ -4017,12 +3988,26 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		unsigned int i = 0;
+ 		const unsigned int lyr_cfg_size =
+ 			ARRAY_SIZE(lyr_cfg2);
++		unsigned int pLyr_cfg2_size;
+ 
+ 		/* adapt to multi thread call in case of disp 0 & 1 work together*/
+-		if (ubuffer[0] == 0)
++		if (ubuffer[0] == 0) {
+ 			pLyr_cfg2 = lyr_cfg2;
+-		else
++			pLyr_cfg2_size = ARRAY_SIZE(lyr_cfg2);
++		} else {
+ 			pLyr_cfg2 = lyr_cfg2_1;
++			pLyr_cfg2_size = ARRAY_SIZE(lyr_cfg2_1);
++		}
++
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++
++		if (ubuffer[2] == 0 || ubuffer[2] > pLyr_cfg2_size) {
++			__wrn("layer number need to be set from 1 to %d\n", pLyr_cfg2_size);
++			return -EFAULT;
++		}
+ 
+ 		if (copy_from_user(pLyr_cfg2,
+ 		    (void __user *)ubuffer[1],
+@@ -4054,12 +4039,26 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		unsigned int i = 0;
+ 		const unsigned int lyr_cfg_size =
+ 			ARRAY_SIZE(lyr_cfg2);
++		unsigned int pLyr_cfg2_size;
+ 
+ 		/* adapt to multi thread call in case of disp 0 & 1 work together*/
+-		if (ubuffer[0] == 0)
++		if (ubuffer[0] == 0) {
+ 			pLyr_cfg2 = lyr_cfg2;
+-		else
++			pLyr_cfg2_size = ARRAY_SIZE(lyr_cfg2);
++		} else {
+ 			pLyr_cfg2 = lyr_cfg2_1;
++			pLyr_cfg2_size = ARRAY_SIZE(lyr_cfg2_1);
++		}
++
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++
++		if (ubuffer[2] == 0 || ubuffer[2] > pLyr_cfg2_size) {
++			__wrn("layer number need to be set from 1 to %d\n", pLyr_cfg2_size);
++			return -EFAULT;
++		}
+ 
+ 		if (copy_from_user(pLyr_cfg2,
+ 		    (void __user *)ubuffer[1],
+@@ -4093,6 +4092,18 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 
+ 	case DISP_LAYER_GET_CONFIG2:
+ 	{
++		const unsigned int lyr_cfg_size = ARRAY_SIZE(lyr_cfg2);
++
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++
++		if (ubuffer[2] == 0 || ubuffer[2] > lyr_cfg_size) {
++			__wrn("layer number need to be set from 1 to %d\n", lyr_cfg_size);
++			return -EFAULT;
++		}
++
+ 		if (copy_from_user(lyr_cfg2,
+ 		    (void __user *)ubuffer[1],
+ 		    sizeof(struct disp_layer_config2) * ubuffer[2])) {
+@@ -4154,6 +4165,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		}
+ 	case DISP_TV_SET_GAMMA_TABLE:
+ 	{
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++
+ 		if (dispdev && (dispdev->type == DISP_OUTPUT_TYPE_TV)) {
+ 			u32 *gamma_tbl = kmalloc(LCD_GAMMA_TABLE_SIZE,
+ 						 GFP_KERNEL | __GFP_ZERO);
+@@ -4227,29 +4243,43 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		}
+ 		break;
+ 	}
++	case DISP_LCD_GET_GAMMA_TABLE:
++	{
++		if (dispdev && (dispdev->type == DISP_OUTPUT_TYPE_LCD)) {
++			u32 *gamma_tbl = kmalloc(LCD_GAMMA_TABLE_SIZE,
++						 GFP_KERNEL | __GFP_ZERO);
++			u32 size = ubuffer[2];
+ 
++			if (gamma_tbl == NULL) {
++				__wrn("kmalloc fail\n");
++				ret = -EFAULT;
++				break;
++			}
+ 
+-		/* ---- hdmi --- */
+-	case DISP_HDMI_SUPPORT_MODE:
+-		{
+-			ret =
+-			    bsp_disp_hdmi_check_support_mode(ubuffer[0],
+-							     ubuffer[1]);
+-			break;
++			size = (size > LCD_GAMMA_TABLE_SIZE) ?
++			    LCD_GAMMA_TABLE_SIZE : size;
++
++			if (dispdev->get_gamma_tbl) {
++				ret = dispdev->get_gamma_tbl(dispdev, gamma_tbl, size);
++				if (copy_to_user((void __user *)ubuffer[1], gamma_tbl,
++									  size)) {
++					__wrn("copy_from_user fail\n");
++					kfree(gamma_tbl);
++					ret = -EFAULT;
++					break;
++				}
++			}
++			kfree(gamma_tbl);
+ 		}
++	}
++	break;
++
+ 
+ 	case DISP_SET_TV_HPD:
+ 		{
+ 			ret = bsp_disp_tv_set_hpd(ubuffer[0]);
+ 			break;
+ 		}
+-#ifdef CONFIG_ARCH_SUN50IW6
+-	case DISP_CEC_ONE_TOUCH_PLAY:
+-	{
+-		ret = bsp_disp_hdmi_cec_send_one_touch_play();
+-		break;
+-	}
+-#endif
+ 		/* ----enhance---- */
+ 	case DISP_ENHANCE_ENABLE:
+ 		{
+@@ -4312,6 +4342,12 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		{
+ 			struct disp_rect rect;
+ 
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
++
+ 			if (copy_from_user(&rect, (void __user *)ubuffer[1],
+ 			     sizeof(struct disp_rect))) {
+ 				__wrn("copy_from_user fail\n");
+@@ -4341,6 +4377,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		{
+ 			struct disp_capture_info info;
+ 
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
+ 			if (copy_from_user(&info, (void __user *)ubuffer[1],
+ 			     sizeof(struct disp_capture_info))) {
+ 				__wrn("copy_from_user fail\n");
+@@ -4354,6 +4395,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	{
+ 		struct disp_capture_info2 info;
+ 
++		if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++			__wrn("incoming pointer of user is ERR or NULL");
++			return -EFAULT;
++		}
++
+ 		if (copy_from_user(&info,
+ 				   (void __user *)ubuffer[1],
+ 				   sizeof(struct disp_capture_info2)))	{
+@@ -4375,12 +4421,26 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 		break;
+ 
+ 	case DISP_MEM_GETADR:
++	{
++		if (ubuffer[0] >= DISP_MEM_NUM) {
++			__wrn("invalid param\n");
++			ret = -EINVAL;
++			break;
++		}
++
+ 		return g_disp_mm[ubuffer[0]].mem_start;
++	}
++
+ #if defined(SUPPORT_VDPO)
+ 	case DISP_VDPO_SET_CONFIG:
+ 		{
+ 			struct disp_vdpo_config vdpo_para;
+ 
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
+ 			if (copy_from_user(
+ 				&vdpo_para, (void __user *)ubuffer[1],
+ 				sizeof(struct disp_vdpo_config) * ubuffer[2])) {
+@@ -4487,6 +4547,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 
+ 			struct disp_ksc_info ksc;
+ 
++			if (IS_ERR_OR_NULL((void __user *)ubuffer[1])) {
++				__wrn("incoming pointer of user is ERR or NULL");
++				return -EFAULT;
++			}
++
+ 			if (copy_from_user(&ksc, (void __user *)ubuffer[1],
+ 					   sizeof(struct disp_ksc_info))) {
+ 				__wrn("copy_from_user fail\n");
+@@ -4567,6 +4632,11 @@ long disp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 			break;
+ 		}
+ 
++	case DISP_PQ_PROC:
++		{
++			ret = disp_ioctl_extend(cmd, (unsigned long)ubuffer);
++			break;
++		}
+ 
+ 	default:
+ 		ret = disp_ioctl_extend(cmd, (unsigned long)ubuffer);
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
+index e8603ba7e..016ad7e23 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp.h
+@@ -300,7 +300,6 @@ extern s32 disp_unregister_standby_func(int (*suspend) (void),
+ extern s32 composer_init(struct disp_drv_info *psg_disp_drv);
+ extern unsigned int composer_dump(char *buf);
+ extern s32 disp_tv_register(struct disp_tv_func *func);
+-extern s32 disp_set_hdmi_detect(bool hpd);
+ s32 disp_set_edp_func(struct disp_tv_func *func);
+ 
+ extern struct disp_drv_info g_disp_drv;
+@@ -314,7 +313,7 @@ extern unsigned long fb_get_address_info(u32 fb_id, u32 phy_virt_flag);
+ extern s32 fb_exit(void);
+ extern int lcd_init(void);
+ 
+-s32 disp_set_hdmi_func(struct disp_device_func *func);
++extern s32 pq_init(struct disp_bsp_init_para *para);
+ s32 disp_set_vdpo_func(struct disp_tv_func *func);
+ s32 sunxi_get_fb_addr_para(struct __fb_addr_para *fb_addr_para);
+ s32 fb_draw_gray_pictures(char *base, u32 width, u32 height,
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp_debugfs.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp_debugfs.c
+index b829bd625..4614276ea 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_disp_debugfs.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_disp_debugfs.c
+@@ -544,9 +544,6 @@ static void dispdbg_process(void)
+ 				return;
+ 			}
+ 
+-			is_support =
+-			    bsp_disp_hdmi_check_support_mode(disp,
+-					     (enum disp_output_type)mode);
+ 			sprintf(dispdbg_priv.info, "%d", is_support);
+ 		} else {
+ 			sprintf(dispdbg_priv.info,
+@@ -830,6 +827,12 @@ static ssize_t dispdbg_debug_level_write(struct file *file, const char __user *b
+ 				  size_t count, loff_t *ppos)
+ {
+ 	char tmp_buf[20] = {0};
++	const unsigned int tmp_buf_size = ARRAY_SIZE(tmp_buf);
++
++	if (count == 0 || count > tmp_buf_size) {
++		pr_warn("input length needs to be set from 1 to %d\n", tmp_buf_size);
++		return 0;
++	}
+ 
+ 	if (copy_from_user(tmp_buf, buf, count)) {
+ 		pr_warn("copy_from_user fail\n");
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+index da7da0888..64c9b37b5 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/dev_fb.c
+@@ -8,6 +8,7 @@
+  */
+ 
+ #include "dev_disp.h"
++#include <linux/ion.h>
+ #include <linux/module.h>
+ #include <linux/kernel.h>
+ #include <linux/version.h>
+@@ -46,7 +47,7 @@ struct fb_info_t {
+ 	struct fb_g2d_rot_t *fb_rot[FB_MAX];
+ 	int mem_cache_flag[SUNXI_FB_MAX];
+ 	struct work_struct free_wq;
+-	bool wait_for_free[DISP_SCREEN_NUM];
++	bool free_uboot_buffer;
+ 
+ 	int blank[3];
+ 	struct disp_ion_mem *mem[SUNXI_FB_MAX];
+@@ -60,6 +61,43 @@ static int bootlogo_sz;
+ #define FBHANDTOID(handle)  ((handle) - 100)
+ #define FBIDTOHAND(ID)  ((ID) + 100)
+ 
++#if defined(CONFIG_ION)
++static int sunxi_ion_dma_buf_end_cpu_access(struct dma_buf *dmabuf)
++{
++	struct ion_buffer *buffer = dmabuf->priv;
++	struct ion_dma_buf_attachment *a;
++
++	mutex_lock(&buffer->lock);
++	list_for_each_entry(a, &buffer->attachments, list) {
++		if (!a->mapped)
++			continue;
++		dma_sync_sg_for_device(a->dev, a->table->sgl,
++				       a->table->orig_nents, DMA_BIDIRECTIONAL);
++	}
++	mutex_unlock(&buffer->lock);
++
++	return 0;
++}
++
++static int sunxi_ion_dma_buf_begin_cpu_access(struct dma_buf *dmabuf)
++{
++	struct ion_buffer *buffer = dmabuf->priv;
++	struct ion_dma_buf_attachment *a;
++
++	mutex_lock(&buffer->lock);
++
++	list_for_each_entry(a, &buffer->attachments, list) {
++		if (!a->mapped)
++			continue;
++		dma_sync_sg_for_cpu(a->dev, a->table->sgl,
++				    a->table->orig_nents, DMA_BIDIRECTIONAL);
++	}
++
++	mutex_unlock(&buffer->lock);
++	return 0;
++}
++#endif
++
+ static struct __fb_addr_para g_fb_addr;
+ 
+ s32 sunxi_get_fb_addr_para(struct __fb_addr_para *fb_addr_para)
+@@ -546,7 +584,8 @@ static int sunxi_fb_open(struct fb_info *info, int user)
+ 					if (!mgr->device->is_enabled(mgr->device)) {
+ 						if (mgr->device->enable)
+ 							mgr->device->enable(mgr->device);
+-						mgr->set_layer_config(mgr, &g_fbi.config[sel], 1);
++						mgr->set_layer_config(mgr, &g_fbi.config[sel],
++								      1);
+ 						disp_delay_ms(20);
+ 					}
+ 				}
+@@ -858,6 +897,7 @@ static int sunxi_fb_setcolreg(unsigned int regno, unsigned int red, unsigned int
+ 		ret = -EINVAL;
+ 		break;
+ 	}
++
+ 	return ret;
+ }
+ 
+@@ -1517,16 +1557,24 @@ static int Fb_copy_boot_fb(u32 sel, struct fb_info *info)
+ 		Fb_unmap_kernel(src_addr);
+ 		return -1;
+ 	}
++
+ 	src_cp_btyes = src_width * src_bpp >> 3;
+ 	src_addr_e = src_addr_b + src_stride * src_height;
++#if defined(CONFIG_ION)
++	sunxi_ion_dma_buf_begin_cpu_access(g_fbi.mem[info->node]->p_item->dmabuf);
++#endif
+ 	for (; src_addr_b != src_addr_e; src_addr_b += src_stride) {
+ 		memcpy((void *)dst_addr, (void *)src_addr_b, src_cp_btyes);
+ 		dst_addr += dst_stride;
+ 	}
++#if defined(CONFIG_ION)
++	sunxi_ion_dma_buf_end_cpu_access(g_fbi.mem[info->node]->p_item->dmabuf);
++#endif
+ 	Fb_unmap_kernel(src_addr);
+-	g_fbi.wait_for_free[sel] = true;
+-	//memblock_free((unsigned long)src_phy_addr, src_stride * fb_height);
+-	//free_reserved_area(__va(src_phy_addr), __va(src_phy_addr + PAGE_ALIGN(src_stride * fb_height)), 0x00, "logo buffer");
++
++	bootlogo_addr = (unsigned long)src_phy_addr;
++	bootlogo_sz =  src_stride * fb_height;
++	g_fbi.free_uboot_buffer = true;
+ 	return 0;
+ }
+ 
+@@ -2048,6 +2096,7 @@ static s32 display_fb_request(u32 fb_id, struct disp_fb_create_info *fb_para)
+ 			    bsp_disp_get_screen_physical_width(sel);
+ 			info->var.height =
+ 			    bsp_disp_get_screen_physical_height(sel);
++
+ 			memset(&config, 0, sizeof(struct disp_layer_config));
+ 
+ 			config.channel = g_fbi.layer_hdl[fb_id][0];
+@@ -2079,7 +2128,6 @@ static s32 display_fb_request(u32 fb_id, struct disp_fb_create_info *fb_para)
+ 					: fb_para->output_height;
+ 			} else
+ #endif
+-
+ 			{
+ 				config.info.screen_win.width =
+ 					(0 ==
+@@ -2134,7 +2182,6 @@ static s32 display_fb_request(u32 fb_id, struct disp_fb_create_info *fb_para)
+ 						   dirty_rect);
+ 			}
+ #endif
+-
+ #if defined(CONFIG_SUNXI_DISP2_FB_HW_ROTATION_SUPPORT)
+ 			g_fbi.fb_rot[fb_id] = fb_g2d_rot_create(info, fb_id, &config);
+ 			if (g_fbi.fb_rot[fb_id])
+@@ -2153,7 +2200,6 @@ static s32 display_fb_request(u32 fb_id, struct disp_fb_create_info *fb_para)
+ 	g_fbi.fb_mode[fb_id] = fb_para->fb_mode;
+ 	memcpy(&g_fbi.fb_para[fb_id], fb_para,
+ 	       sizeof(struct disp_fb_create_info));
+-
+ OUT:
+ 	return ret;
+ }
+@@ -2251,6 +2297,25 @@ static s32 fb_parse_bootlogo_base(phys_addr_t *fb_base, int *fb_size)
+ 	return 0;
+ }
+ 
++static void fb_free_reserve_mem(struct work_struct *work)
++{
++	int disp = g_disp_drv.para.boot_info.disp;
++	int ret;
++	unsigned long count;
++	if (g_fbi.free_uboot_buffer) {
++		count = g_fbi.wait_count[disp];
++		ret = wait_event_interruptible_timeout(g_fbi.wait[disp], count !=
++							g_fbi.wait_count[disp],
++							msecs_to_jiffies(3000));
++		if (ret <= 0) {
++			__wrn("[DISP] %s wait for sync timeout\n", __func__);
++		}
++	}
++	memblock_free((unsigned long)bootlogo_addr, bootlogo_sz);
++	free_reserved_area(__va(bootlogo_addr), __va(bootlogo_addr + PAGE_ALIGN(bootlogo_sz)), 0x00, "logo buffer");
++}
++
++
+ unsigned long fb_get_address_info(u32 fb_id, u32 phy_virt_flag)
+ {
+ 	struct fb_info *info = NULL;
+@@ -2272,65 +2337,6 @@ unsigned long fb_get_address_info(u32 fb_id, u32 phy_virt_flag)
+ 	return phy_addr;
+ }
+ 
+-static void fb_free_reserve_mem(struct work_struct *work)
+-{
+-	int i;
+-	int ret;
+-	unsigned long count;
+-	char *boot_fb_str = NULL;
+-	char *src_phy_addr = NULL;
+-	int fb_height = 0;
+-	int src_stride = 0;
+-
+-	enum {
+-		    BOOT_FB_ADDR = 0,
+-			BOOT_FB_WIDTH,
+-			BOOT_FB_HEIGHT,
+-			BOOT_FB_BPP,
+-			BOOT_FB_STRIDE,
+-			BOOT_FB_CROP_L,
+-			BOOT_FB_CROP_T,
+-			BOOT_FB_CROP_R,
+-			BOOT_FB_CROP_B,
+-	};
+-
+-	for (i = 0; i < DISP_SCREEN_NUM; i++) {
+-		if (g_fbi.wait_for_free[i]) {
+-			count = g_fbi.wait_count[i];
+-			ret = wait_event_interruptible_timeout(g_fbi.wait[i], count != g_fbi.wait_count[i], msecs_to_jiffies(2000));
+-			if (ret <= 0)
+-				__wrn("[DISP] %s wait for sync timeout\n", __func__);
+-		}
+-	}
+-	boot_fb_str = (char *)disp_boot_para_parse_str("boot_fb0");
+-	for (i = 0;; ++i) {
+-		char *p = strstr(boot_fb_str, ",");
+-		if (p != NULL)
+-			*p = '\0';
+-		if (i == BOOT_FB_ADDR) {
+-			ret = kstrtoul(boot_fb_str, 16, (unsigned long *)&src_phy_addr);
+-			if (ret)
+-				pr_warn("parse src_phy_addr fail!\n");
+-		} else if (i == BOOT_FB_HEIGHT) {
+-			ret = kstrtou32(boot_fb_str, 16, &fb_height);
+-			if (ret)
+-				pr_warn("parse src_height fail!\n");
+-		} else if (i == BOOT_FB_STRIDE) {
+-			ret = kstrtou32(boot_fb_str, 16, &src_stride);
+-			if (ret)
+-				pr_warn("parse src_stride fail!\n");
+-		}
+-		if (p == NULL)
+-			break;
+-		boot_fb_str = p + 1;
+-	}
+-	if (src_phy_addr && fb_height > 0 && src_stride > 0) {
+-		pr_warn("free logo buffer src_phy_addr=0x%x  fb_height=%d  src_stride=%d\n", src_phy_addr, fb_height, src_stride);
+-		memblock_free((unsigned long)src_phy_addr, src_stride * fb_height);
+-		free_reserved_area(__va(src_phy_addr), __va(src_phy_addr + PAGE_ALIGN(src_stride * fb_height)), 0x00, "logo buffer");
+-	}
+-}
+-
+ s32 fb_init(struct platform_device *pdev)
+ {
+ 	struct disp_fb_create_info fb_para;
+@@ -2364,10 +2370,10 @@ s32 fb_init(struct platform_device *pdev)
+ 		g_fbi.fbinfo[i]->par = &g_fbi;
+ 		g_fbi.fbinfo[i]->var.xoffset = 0;
+ 		g_fbi.fbinfo[i]->var.yoffset = 0;
+-		g_fbi.fbinfo[i]->var.xres = 1080;
+-		g_fbi.fbinfo[i]->var.yres = 1240;
+-		g_fbi.fbinfo[i]->var.xres_virtual = 1080;
+-		g_fbi.fbinfo[i]->var.yres_virtual = 1240 * 2;
++		g_fbi.fbinfo[i]->var.xres = 800;
++		g_fbi.fbinfo[i]->var.yres = 480;
++		g_fbi.fbinfo[i]->var.xres_virtual = 800;
++		g_fbi.fbinfo[i]->var.yres_virtual = 480 * 2;
+ 		g_fbi.fbinfo[i]->var.nonstd = 0;
+ 		g_fbi.fbinfo[i]->var.bits_per_pixel = 32;
+ 		g_fbi.fbinfo[i]->var.transp.length = 8;
+@@ -2458,22 +2464,6 @@ s32 fb_init(struct platform_device *pdev)
+ 			fb_para.height = fb_para.output_height;
+ #endif
+ 
+-				pr_warn("g_fbi_fbinfo[0]: var.xoffset: %d, var.yoffset: %d, var.xres: %d, var.yres: %d, var.xres_virtual: %d, var.yres_virtual: %d, var.bits_per_pixel: %d\n",
+-				i,
+-				g_fbi.fbinfo[i]->var.xoffset,
+-				g_fbi.fbinfo[i]->var.yoffset,
+-				g_fbi.fbinfo[i]->var.xres,
+-				g_fbi.fbinfo[i]->var.yres,
+-				g_fbi.fbinfo[i]->var.xres_virtual,
+-				g_fbi.fbinfo[i]->var.yres_virtual,
+-				g_fbi.fbinfo[i]->var.bits_per_pixel);
+-			pr_warn("fb%d:  width=%d, height=%d, out_width=%d, out_height=%d, bpp=%d, buf_num=%d\n",
+-				i, fb_para.width, fb_para.height,
+-				fb_para.output_width,
+-				fb_para.output_height,
+-				g_fbi.fbinfo[i]->var.bits_per_pixel,
+-				fb_para.buffer_num);
+- 
+ 			ret = display_fb_request(i, &fb_para);
+ 			if (ret)
+ 				break;
+@@ -2484,14 +2474,9 @@ s32 fb_init(struct platform_device *pdev)
+ 		for (i = 0; i < SUNXI_FB_MAX; i++)
+ 			register_framebuffer(g_fbi.fbinfo[i]);
+ 	}
+-	if (!ret) {
+-		for (i = 0; i < num_screens; i++) {
+-			if (g_fbi.wait_for_free[i]) {
+-				INIT_WORK(&g_fbi.free_wq, fb_free_reserve_mem);
+-				schedule_work(&g_fbi.free_wq);
+-				break;
+-			}
+-		}
++	if (g_fbi.free_uboot_buffer) {
++		INIT_WORK(&g_fbi.free_wq, fb_free_reserve_mem);
++		schedule_work(&g_fbi.free_wq);
+ 	}
+ 	return ret;
+ }
+@@ -2499,17 +2484,11 @@ s32 fb_init(struct platform_device *pdev)
+ s32 fb_exit(void)
+ {
+ 	unsigned int fb_id = 0;
+-	bool canceled = false;
+-	int i;
+ 
+-	disp_unregister_sync_finish_proc(DRV_disp_int_process);
+-	for (i = 0; i < DISP_SCREEN_NUM; i++) {
+-		if (g_fbi.wait_for_free[i] && !canceled) {
+-			cancel_work_sync(&g_fbi.free_wq);
+-			canceled = true;
+-		}
+-	}
++	if (g_fbi.free_uboot_buffer)
++		cancel_work_sync(&g_fbi.free_wq);
+ 
++	disp_unregister_sync_finish_proc(DRV_disp_int_process);
+ 	for (fb_id = 0; fb_id < SUNXI_FB_MAX; fb_id++) {
+ 		if (g_fbi.fbinfo[fb_id]) {
+ 			fb_dealloc_cmap(&g_fbi.fbinfo[fb_id]->cmap);
+@@ -2522,3 +2501,4 @@ s32 fb_exit(void)
+ 
+ 	return 0;
+ }
++
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/fb_g2d_rot.c b/drivers/video/fbdev/sunxi/disp2/disp/fb_g2d_rot.c
+index d30ad79cd..9db4f657f 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/fb_g2d_rot.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/fb_g2d_rot.c
+@@ -238,8 +238,6 @@ struct fb_g2d_rot_t *fb_g2d_rot_create(struct fb_info *p_info,
+ 		fb_rot->info.dst_image_h.height = p_info->var.xres;
+ 		fb_rot->info.dst_image_h.clip_rect.w = fb_rot->info.dst_image_h.height;
+ 		fb_rot->info.dst_image_h.clip_rect.h = fb_rot->info.dst_image_h.width;
+-		config->info.screen_win.width = p_info->var.yres;
+-		config->info.screen_win.height = p_info->var.xres;
+ 		config->info.fb.crop.width = ((long long)p_info->var.yres << 32);
+ 		config->info.fb.crop.height = ((long long)p_info->var.xres << 32);
+ 		config->info.fb.size[0].width = p_info->var.yres;
+@@ -264,8 +262,6 @@ struct fb_g2d_rot_t *fb_g2d_rot_create(struct fb_info *p_info,
+ 		fb_rot->info.dst_image_h.height = p_info->var.xres;
+ 		fb_rot->info.dst_image_h.clip_rect.w = fb_rot->info.dst_image_h.height;
+ 		fb_rot->info.dst_image_h.clip_rect.h = fb_rot->info.dst_image_h.width;
+-		config->info.screen_win.width = p_info->var.yres;
+-		config->info.screen_win.height = p_info->var.xres;
+ 		config->info.fb.crop.width = ((long long)p_info->var.yres << 32);
+ 		config->info.fb.crop.height = ((long long)p_info->var.xres << 32);
+ 		config->info.fb.size[0].width = p_info->var.yres;
+-- 
+2.34.1
+

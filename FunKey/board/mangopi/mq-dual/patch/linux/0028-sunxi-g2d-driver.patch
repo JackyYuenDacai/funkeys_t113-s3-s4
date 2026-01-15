@@ -1,0 +1,254 @@
+From af02e2c18069e89b897f413382fd558287fb11d6 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 15:14:09 +0800
+Subject: [PATCH 28/31] sunxi g2d driver
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/char/sunxi_g2d/Makefile             |  1 +
+ drivers/char/sunxi_g2d/g2d_driver.c         |  5 +++
+ drivers/char/sunxi_g2d/g2d_driver_i.h       |  5 ++-
+ drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.c    | 47 +++++++++++++++++++++
+ drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.h    |  2 +
+ drivers/char/sunxi_g2d/g2d_rcq/g2d_mixer.c  | 45 ++++++++++++++++----
+ drivers/char/sunxi_g2d/g2d_rcq/g2d_rotate.c |  3 ++
+ drivers/char/sunxi_g2d/g2d_regs_v2.h        |  4 ++
+ 8 files changed, 102 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/char/sunxi_g2d/Makefile b/drivers/char/sunxi_g2d/Makefile
+index a958a6da8..03c244112 100644
+--- a/drivers/char/sunxi_g2d/Makefile
++++ b/drivers/char/sunxi_g2d/Makefile
+@@ -13,6 +13,7 @@ g2d_sunxi-${CONFIG_ARCH_SUN8IW16P1} += g2d_driver.o g2d_bsp_v2.o
+ g2d_sunxi-${CONFIG_ARCH_SUN50IW9P1} += g2d_driver.o g2d_bsp_v2.o
+ g2d_sunxi-${CONFIG_ARCH_SUN50IW9}   += g2d_driver.o g2d_bsp_v2.o
+ g2d_sunxi-${CONFIG_ARCH_SUN50IW10P1} += g2d_driver.o g2d_bsp_v2.o
++g2d_sunxi-${CONFIG_ARCH_SUN55IW3} += g2d_driver.o g2d_bsp_v2.o
+ 
+ g2d_sunxi-$(CONFIG_ARCH_SUN8IW19P1) += ${rcq_obj}
+ g2d_sunxi-$(CONFIG_SUNXI_SYNCFENCE) += syncfence.o
+diff --git a/drivers/char/sunxi_g2d/g2d_driver.c b/drivers/char/sunxi_g2d/g2d_driver.c
+index 0b04cd413..f0c8e12ad 100644
+--- a/drivers/char/sunxi_g2d/g2d_driver.c
++++ b/drivers/char/sunxi_g2d/g2d_driver.c
+@@ -1642,6 +1642,11 @@ static int g2d_probe(struct platform_device *pdev)
+ 		info->clk_parent = clk_get_parent(info->clk);
+ 		info->bus_clk = devm_clk_get(&pdev->dev, "bus");
+ 		info->mbus_clk = devm_clk_get(&pdev->dev, "mbus_g2d");
++		if (IS_ERR(info->mbus_clk)) {
++			pr_err("[G2D] mbus clocK get error!\n");
++			info->mbus_clk = NULL;
++		}
++
+ 		info->reset = devm_reset_control_get(&pdev->dev, NULL);
+ 	}
+ #endif
+diff --git a/drivers/char/sunxi_g2d/g2d_driver_i.h b/drivers/char/sunxi_g2d/g2d_driver_i.h
+index b340702e3..437fd9a01 100644
+--- a/drivers/char/sunxi_g2d/g2d_driver_i.h
++++ b/drivers/char/sunxi_g2d/g2d_driver_i.h
+@@ -29,6 +29,8 @@
+ #else
+ #define	DBG(format, args...)
+ #endif
++
++
+ #define ERR(format, args...) pr_err("%s: " format, "G2D", ## args)
+ #define WARNING(format, args...) \
+ 	pr_warn("%s: " format, "G2D", ## args)
+@@ -45,7 +47,8 @@
+ 					(defined CONFIG_ARCH_SUN8IW17P1) || \
+ 					(defined CONFIG_ARCH_SUN50IW9) || \
+ 					(defined CONFIG_ARCH_SUN8IW16P1) || \
+-					(defined CONFIG_ARCH_SUN50IW10P1))
++					(defined CONFIG_ARCH_SUN50IW10P1) || \
++					(defined CONFIG_ARCH_SUN55IW3))
+ #define G2D_V2X_SUPPORT
+ #endif
+ 
+diff --git a/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.c b/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.c
+index dc9822dec..c1d55cf0e 100644
+--- a/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.c
++++ b/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.c
+@@ -118,6 +118,53 @@ __s32 bld_in_set(struct blender_submodule *p_bld, __u32 sel, g2d_rect rect,
+ 	return ret;
+ }
+ 
++__s32 bld_fc_set(struct blender_submodule *p_bld, __u32 sel, g2d_rect rect,
++		    int premul, __u32 color)
++{
++	__s32 ret = -1;
++
++	struct g2d_mixer_bld_reg *p_reg = NULL;
++	p_reg = p_bld->get_reg(p_bld);
++	if (!p_reg)
++		goto OUT;
++
++	p_reg->bld_en_ctrl.bits.p0_en = 1;
++	/* we use p0 (src pic) as bottom layer */
++	p_reg->bld_en_ctrl.bits.p0_fcen = 0;
++	if (premul)
++		p_reg->premulti_ctrl.bits.p0_alpha_mode = 1;
++
++	/* we use p1 (fill-color) as top layer */
++	p_reg->bld_en_ctrl.bits.p1_en = 1;
++	p_reg->bld_en_ctrl.bits.p1_fcen = 1;
++	p_reg->bld_fill_color[sel] = color;
++
++	if (premul)
++		p_reg->premulti_ctrl.bits.p1_alpha_mode = 1;
++
++	/* Set the area where pipe0 and pipe1 are mixed. */
++	sel = 0;
++	p_reg->mem_size[sel].bits.width = rect.w - 1;
++	p_reg->mem_size[sel].bits.height = rect.h - 1;
++
++	p_reg->mem_coor[sel].bits.xcoor = rect.x <= 0 ? 0 : rect.x - 1;
++	p_reg->mem_coor[sel].bits.ycoor = rect.y <= 0 ? 0 : rect.y - 1;
++
++	sel = 1;
++	p_reg->mem_size[sel].bits.width = rect.w - 1;
++	p_reg->mem_size[sel].bits.height = rect.h - 1;
++
++	p_reg->mem_coor[sel].bits.xcoor = rect.x <= 0 ? 0 : rect.x - 1;
++	p_reg->mem_coor[sel].bits.ycoor = rect.y <= 0 ? 0 : rect.y - 1;
++
++	ret = 0;
++
++	p_bld->set_block_dirty(p_bld, 0, 1);
++
++OUT:
++	return ret;
++}
++
+ /**
+  * set colorkey para.
+  */
+diff --git a/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.h b/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.h
+index 1084df8d3..46150efa1 100644
+--- a/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.h
++++ b/drivers/char/sunxi_g2d/g2d_rcq/g2d_bld.h
+@@ -50,5 +50,7 @@ __s32 bld_rop2_set(struct blender_submodule *p_bld, __u32 rop_cmd);
+ struct blender_submodule *
+ g2d_bld_submodule_setup(struct g2d_mixer_frame *p_frame);
+ __s32 bld_porter_duff(struct blender_submodule *p_bld, __u32 cmd);
++__s32 bld_fc_set(struct blender_submodule *p_bld, __u32 sel, g2d_rect rect,
++		    int premul, __u32 color);
+ 
+ #endif /*End of file*/
+diff --git a/drivers/char/sunxi_g2d/g2d_rcq/g2d_mixer.c b/drivers/char/sunxi_g2d/g2d_rcq/g2d_mixer.c
+index a072a402d..12caaef39 100644
+--- a/drivers/char/sunxi_g2d/g2d_rcq/g2d_mixer.c
++++ b/drivers/char/sunxi_g2d/g2d_rcq/g2d_mixer.c
+@@ -91,8 +91,6 @@ static __s32 g2d_bsp_maskblt(struct g2d_mixer_frame *p_frame,
+ 
+ 	/* set the input layer */
+ 	g2d_vlayer_set(p_frame->ovl_v, 0, dst);
+-	/* set the fill color value */
+-	g2d_ovl_v_fc_set(p_frame->ovl_v, color_value);
+ 
+ 	if (dst->format >= G2D_FORMAT_IYUV422_V0Y1U0Y0) {
+ 		g2d_vsu_para_set(p_frame->scal, dst->format, dst->clip_rect.w,
+@@ -128,7 +126,9 @@ static __s32 g2d_bsp_maskblt(struct g2d_mixer_frame *p_frame,
+ 	rect0.y = 0;
+ 	rect0.w = dst->clip_rect.w;
+ 	rect0.h = dst->clip_rect.h;
+-	bld_in_set(p_frame->bld, 0, rect0, dst->bpremul);
++
++	bld_fc_set(p_frame->bld, 1, rect0, dst->bpremul, dst->color);
++	bld_porter_duff(p_frame->bld, G2D_BLD_SRCOVER);
+ 	bld_cs_set(p_frame->bld, dst->format);
+ 
+ 	/* ROP sel ch0 pass */
+@@ -184,12 +184,24 @@ static __s32 g2d_bsp_bld(struct g2d_mixer_frame *p_frame, g2d_image_enh *src,
+ 			pr_err("[BLD] not support two yuv layer!\n");
+ 			goto OUT;
+ 		} else {
+-			/* YUV_XXX->YUV444->RGB overlay size */
+-			g2d_ovl_v_calc_coarse(p_frame->ovl_v, src->format, dst->clip_rect.w,
+-						dst->clip_rect.h, dst->clip_rect.w,
+-						dst->clip_rect.h, &midw, &midh);
+-			g2d_vsu_para_set(p_frame->scal, src->format, midw, midh,
+-					dst->clip_rect.w, dst->clip_rect.h, dst->alpha);
++			/**
++			 * YUV_XXX->YUV444->RGB overlay size.
++			 * If the user configures the resize of g2d_image_enh,
++			 * the resize variable is the out size after scaler.
++			 */
++			if (src->resize.w != 0 && src->resize.h != 0) {
++				g2d_ovl_v_calc_coarse(p_frame->ovl_v, src->format, src->clip_rect.w,
++							src->clip_rect.h, src->resize.w,
++							src->resize.h, &midw, &midh);
++				g2d_vsu_para_set(p_frame->scal, src->format, midw, midh,
++						src->resize.w, src->resize.h, dst->alpha);
++			} else {
++				g2d_ovl_v_calc_coarse(p_frame->ovl_v, src->format, dst->clip_rect.w,
++							dst->clip_rect.h, dst->clip_rect.w,
++							dst->clip_rect.h, &midw, &midh);
++				g2d_vsu_para_set(p_frame->scal, src->format, midw, midh,
++							dst->clip_rect.w, dst->clip_rect.h, dst->alpha);
++			}
+ 
+ 			if (dst->gamut == G2D_BT601)
+ 				bld_csc_reg_set(p_frame->bld, 0, G2D_RGB2YUV_601, src->color_range, dst->color_range);
+@@ -201,6 +213,16 @@ static __s32 g2d_bsp_bld(struct g2d_mixer_frame *p_frame, g2d_image_enh *src,
+ 			pr_err("[BLD] please use ch0(src0) to set YUV layer!\n");
+ 			goto OUT;
+ 		}
++
++		// do scale
++		if (src->resize.w != 0 && src->resize.h != 0) {
++			g2d_ovl_v_calc_coarse(p_frame->ovl_v, src->format, src->clip_rect.w,
++						src->clip_rect.h, src->resize.w,
++						src->resize.h, &midw, &midh);
++
++			g2d_vsu_para_set(p_frame->scal, src->format, midw, midh,
++						src->resize.w, src->resize.h, src->alpha);
++		}
+ 	}
+ 
+ 	if (dst->format > G2D_FORMAT_BGRA1010102) {
+@@ -217,6 +239,11 @@ static __s32 g2d_bsp_bld(struct g2d_mixer_frame *p_frame, g2d_image_enh *src,
+ 	rect0.w = dst->clip_rect.w;/* overlay size */
+ 	rect0.h = dst->clip_rect.h;
+ 
++	if (src->resize.w != 0 && src->resize.h != 0) {
++		rect0.w = src->resize.w;
++		rect0.h = src->resize.h;
++	}
++
+ 	rect1.x = 0;
+ 	rect1.y = 0;
+ 	rect1.w = dst->clip_rect.w;
+diff --git a/drivers/char/sunxi_g2d/g2d_rcq/g2d_rotate.c b/drivers/char/sunxi_g2d/g2d_rcq/g2d_rotate.c
+index 4d2c9a785..99195a131 100644
+--- a/drivers/char/sunxi_g2d/g2d_rcq/g2d_rotate.c
++++ b/drivers/char/sunxi_g2d/g2d_rcq/g2d_rotate.c
+@@ -591,6 +591,9 @@ __s32 g2d_lbc_rot_set_para(g2d_lbc_rot *para)
+ 
+ 	ret = g2d_wait_cmd_finish(WAIT_CMD_TIME_MS);
+ 
++	// Turning off LBC config to avoid BIT rotation abnormal.
++	write_wvalue(LBC_ENC_CTL, 0x0);
++
+ 	if (!src->use_phy_addr || !dst->use_phy_addr)
+ 		g2d_dma_unmap(dst_item);
+ SRC_DMA_UNMAP:
+diff --git a/drivers/char/sunxi_g2d/g2d_regs_v2.h b/drivers/char/sunxi_g2d/g2d_regs_v2.h
+index df9ad982e..1dde3f146 100644
+--- a/drivers/char/sunxi_g2d/g2d_regs_v2.h
++++ b/drivers/char/sunxi_g2d/g2d_regs_v2.h
+@@ -212,6 +212,10 @@
+ #define ROT_OHADD1         (0xAC + G2D_ROT)
+ #define ROT_OLADD2         (0xB0 + G2D_ROT)
+ #define ROT_OHADD2         (0xB4 + G2D_ROT)
++#define ROT_IRSC_CTL         (0xB8 + G2D_ROT)
++#define ROT_IRSC_CLK         (0xBC + G2D_ROT)
++#define ROT_ORSC_CTL         (0xC0 + G2D_ROT)
++#define ROT_ORSC_CLK         (0xC4 + G2D_ROT)
+ 
+ /* #define write_wvalue(addr, data) m_usbwordwrite32(  addr, data ) */
+ /* #define write_wvalue(addr, v) put_wvalue(addr, v) */
+-- 
+2.34.1
+

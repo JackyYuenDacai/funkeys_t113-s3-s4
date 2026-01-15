@@ -10,7 +10,7 @@ LV_EXAMPLES_CFLAGS+=-I$(@D)/src
 define LV_EXAMPLES_BUILD_CMDS
 	cp -r $(LV_EXAMPLES_SITE)/../lvgl $(@D)/src/
 	cp -r $(LV_EXAMPLES_SITE)/../lv_drivers $(@D)/src/
-	cp -r $(LV_EXAMPLES_SITE)/../lv_demos $(@D)/src
+	cp -r $(LV_EXAMPLES_SITE)/../lvgl/demos $(@D)/src
 	make  -C $(@D)/src\
 		ARCH="$(TARGET_ARCH)" \
 		AR="$(TARGET_AR)" \

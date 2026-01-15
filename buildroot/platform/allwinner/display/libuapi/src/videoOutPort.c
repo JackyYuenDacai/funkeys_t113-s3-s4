@@ -31,7 +31,7 @@ typedef int s32;
 #endif
 
 #ifdef __SUNXI_DISPLAY2__
-#include "sunxi_display2.h"
+#include "sunxi_display_v2.h"
 #define CHN_NUM 3
 #define ZORDER_MAX 11
 #define ZORDER_MID 5
@@ -218,7 +218,7 @@ static int layer_set_src(int fd, unsigned int hlay, SrcInfo *src,
 
 	config.info.fb.size[0].width = src->w;
 	config.info.fb.size[0].height = src->h;
-	config.info.fb.color_space = (enum disp_color_space) src->color_space;
+	config.info.fb.color_space = (disp_color_space) src->color_space;
 	switch (src->format) {
 	case VIDEO_PIXEL_FORMAT_YUV_PLANER_420:
 		config.info.fb.format = DISP_FORMAT_YUV420_P;

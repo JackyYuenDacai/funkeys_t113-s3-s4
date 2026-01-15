@@ -1,0 +1,173 @@
+From 6d2c8b55b0cd268f5c0725cfb4ea246c446230c4 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 22:37:51 +0800
+Subject: [PATCH] g1392-touchscreen-patch-4
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/input/evdev.c    | 20 ++++++++++----------
+ drivers/input/input-mt.c | 15 +++++++++------
+ include/linux/input/mt.h |  7 ++++++-
+ 3 files changed, 25 insertions(+), 17 deletions(-)
+
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index e1340db08..59e17716e 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -28,7 +28,6 @@
+ struct evdev {
+ 	int open;
+ 	struct input_handle handle;
+-	wait_queue_head_t wait;
+ 	struct evdev_client __rcu *grab;
+ 	struct list_head client_list;
+ 	spinlock_t client_lock; /* protects client_list */
+@@ -43,6 +42,7 @@ struct evdev_client {
+ 	unsigned int tail;
+ 	unsigned int packet_head; /* [future] position of the first element of next packet */
+ 	spinlock_t buffer_lock; /* protects access to buffer, head and tail */
++	wait_queue_head_t wait;
+ 	struct fasync_struct *fasync;
+ 	struct evdev *evdev;
+ 	struct list_head node;
+@@ -245,7 +245,6 @@ static void evdev_pass_values(struct evdev_client *client,
+ 			const struct input_value *vals, unsigned int count,
+ 			ktime_t *ev_time)
+ {
+-	struct evdev *evdev = client->evdev;
+ 	const struct input_value *v;
+ 	struct input_event event;
+ 	struct timespec64 ts;
+@@ -282,7 +281,8 @@ static void evdev_pass_values(struct evdev_client *client,
+ 	spin_unlock(&client->buffer_lock);
+ 
+ 	if (wakeup)
+-		wake_up_interruptible(&evdev->wait);
++		wake_up_interruptible_poll(&client->wait,
++			EPOLLIN | EPOLLOUT | EPOLLRDNORM | EPOLLWRNORM);
+ }
+ 
+ /*
+@@ -425,11 +425,11 @@ static void evdev_hangup(struct evdev *evdev)
+ 	struct evdev_client *client;
+ 
+ 	spin_lock(&evdev->client_lock);
+-	list_for_each_entry(client, &evdev->client_list, node)
++	list_for_each_entry(client, &evdev->client_list, node) {
+ 		kill_fasync(&client->fasync, SIGIO, POLL_HUP);
++		wake_up_interruptible_poll(&client->wait, EPOLLHUP | EPOLLERR);
++	}
+ 	spin_unlock(&evdev->client_lock);
+-
+-	wake_up_interruptible(&evdev->wait);
+ }
+ 
+ static int evdev_release(struct inode *inode, struct file *file)
+@@ -478,6 +478,7 @@ static int evdev_open(struct inode *inode, struct file *file)
+ 	if (!client)
+ 		return -ENOMEM;
+ 
++	init_waitqueue_head(&client->wait);
+ 	client->bufsize = bufsize;
+ 	spin_lock_init(&client->buffer_lock);
+ 	client->evdev = evdev;
+@@ -594,7 +595,7 @@ static ssize_t evdev_read(struct file *file, char __user *buffer,
+ 			break;
+ 
+ 		if (!(file->f_flags & O_NONBLOCK)) {
+-			error = wait_event_interruptible(evdev->wait,
++			error = wait_event_interruptible(client->wait,
+ 					client->packet_head != client->tail ||
+ 					!evdev->exist || client->revoked);
+ 			if (error)
+@@ -612,7 +613,7 @@ static __poll_t evdev_poll(struct file *file, poll_table *wait)
+ 	struct evdev *evdev = client->evdev;
+ 	__poll_t mask;
+ 
+-	poll_wait(file, &evdev->wait, wait);
++	poll_wait(file, &client->wait, wait);
+ 
+ 	if (evdev->exist && !client->revoked)
+ 		mask = EPOLLOUT | EPOLLWRNORM;
+@@ -945,7 +946,7 @@ static int evdev_revoke(struct evdev *evdev, struct evdev_client *client,
+ 	client->revoked = true;
+ 	evdev_ungrab(evdev, client);
+ 	input_flush_device(&evdev->handle, file);
+-	wake_up_interruptible(&evdev->wait);
++	wake_up_interruptible_poll(&client->wait, EPOLLHUP | EPOLLERR);
+ 
+ 	return 0;
+ }
+@@ -1357,7 +1358,6 @@ static int evdev_connect(struct input_handler *handler, struct input_dev *dev,
+ 	INIT_LIST_HEAD(&evdev->client_list);
+ 	spin_lock_init(&evdev->client_lock);
+ 	mutex_init(&evdev->mutex);
+-	init_waitqueue_head(&evdev->wait);
+ 	evdev->exist = true;
+ 
+ 	dev_no = minor;
+diff --git a/drivers/input/input-mt.c b/drivers/input/input-mt.c
+index a81e14148..a580b2ead 100644
+--- a/drivers/input/input-mt.c
++++ b/drivers/input/input-mt.c
+@@ -16,7 +16,7 @@ static void copy_abs(struct input_dev *dev, unsigned int dst, unsigned int src)
+ 	if (dev->absinfo && test_bit(src, dev->absbit)) {
+ 		dev->absinfo[dst] = dev->absinfo[src];
+ 		dev->absinfo[dst].fuzz = 0;
+-		dev->absbit[BIT_WORD(dst)] |= BIT_MASK(dst);
++		__set_bit(dst, dev->absbit);
+ 	}
+ }
+ 
+@@ -323,11 +323,14 @@ static int adjust_dual(int *begin, int step, int *end, int eq, int mu)
+ 	p = begin + step;
+ 	s = p == end ? f + 1 : *p;
+ 
+-	for (; p != end; p += step)
+-		if (*p < f)
+-			s = f, f = *p;
+-		else if (*p < s)
++	for (; p != end; p += step) {
++		if (*p < f) {
++			s = f;
++			f = *p;
++		} else if (*p < s) {
+ 			s = *p;
++		}
++	}
+ 
+ 	c = (f + s + 1) / 2;
+ 	if (c == 0 || (c > mu && (!eq || mu > 0)))
+@@ -489,4 +492,4 @@ int input_mt_get_slot_by_key(struct input_dev *dev, int key)
+ 
+ 	return -1;
+ }
+-EXPORT_SYMBOL(input_mt_get_slot_by_key);
++EXPORT_SYMBOL(input_mt_get_slot_by_key);
+\ No newline at end of file
+diff --git a/include/linux/input/mt.h b/include/linux/input/mt.h
+index 9e409bb13..b2094425b 100644
+--- a/include/linux/input/mt.h
++++ b/include/linux/input/mt.h
+@@ -100,6 +100,11 @@ static inline bool input_is_mt_axis(int axis)
+ bool input_mt_report_slot_state(struct input_dev *dev,
+ 				unsigned int tool_type, bool active);
+ 
++static inline void input_mt_report_slot_inactive(struct input_dev *dev)
++{
++	input_mt_report_slot_state(dev, 0, false);
++}
++
+ void input_mt_report_finger_count(struct input_dev *dev, int count);
+ void input_mt_report_pointer_emulation(struct input_dev *dev, bool use_count);
+ void input_mt_drop_unused(struct input_dev *dev);
+@@ -121,4 +126,4 @@ int input_mt_assign_slots(struct input_dev *dev, int *slots,
+ 
+ int input_mt_get_slot_by_key(struct input_dev *dev, int key);
+ 
+-#endif
++#endif
+\ No newline at end of file
+-- 
+2.34.1
+

@@ -1,0 +1,49 @@
+From ab90c0c4a65855c172f976f3056fd0eee99b2037 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 15 Jan 2026 18:29:53 +0800
+Subject: [PATCH] g1392-touchscreen-patch
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/input/evdev.c                      | 2 +-
+ drivers/input/touchscreen/lge/touch_core.c | 6 ++++--
+ 2 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index 0d57e51b8..e1340db08 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -1443,4 +1443,4 @@ module_exit(evdev_exit);
+ 
+ MODULE_AUTHOR("Vojtech Pavlik <vojtech@ucw.cz>");
+ MODULE_DESCRIPTION("Input driver event char devices");
+-MODULE_LICENSE("GPL");
++MODULE_LICENSE("GPL");
+\ No newline at end of file
+diff --git a/drivers/input/touchscreen/lge/touch_core.c b/drivers/input/touchscreen/lge/touch_core.c
+index 2c077425f..ed1e3b9c4 100644
+--- a/drivers/input/touchscreen/lge/touch_core.c
++++ b/drivers/input/touchscreen/lge/touch_core.c
+@@ -53,7 +53,8 @@ void touch_report_cancel_event(struct touch_core_data *ts)
+ 	int i = 0;
+ 
+ 	TOUCH_TRACE();
+-
++		   // Set proper timestamp
++    input_set_timestamp(ts->input, ktime_get());
+ 	for (i = 0; i < MAX_FINGER; i++) {
+ 		if (old_mask & (1 << i)) {
+ 			input_mt_slot(ts->input, i);
+@@ -92,7 +93,8 @@ static void touch_report_event(struct touch_core_data *ts)
+ 		 (ts->role.hide_coordinate));
+ 
+ 	TOUCH_TRACE();
+-
++	   // Set proper timestamp
++    input_set_timestamp(ts->input, ktime_get());
+ 	change_mask = old_mask ^ new_mask;
+ 	press_mask = new_mask & change_mask;
+ 	release_mask = old_mask & change_mask;
+-- 
+2.34.1
+

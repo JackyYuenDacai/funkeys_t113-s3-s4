@@ -8,13 +8,14 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <linux/input.h>
 
 int main(int argc, char *argv[])
 {
     static lv_disp_drv_t disp_drv;
     lv_disp_drv_init(&disp_drv);
     uint32_t rotated = LV_DISP_ROT_NONE;
-
+    printf("struct input size:%lu bytes\n", sizeof(struct input_event));
     if (argv[1] == NULL || atoi(argv[1]) < 0 || atoi(argv[1]) > 4) {
         printf("lv_examples 0, is lv_demo_widgets\n");
         printf("lv_examples 1, is lv_demo_music\n");

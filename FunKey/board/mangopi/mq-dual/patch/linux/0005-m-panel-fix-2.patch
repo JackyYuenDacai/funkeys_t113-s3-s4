@@ -1,0 +1,28 @@
+From 39b20b75583dfe4713d4a9c1ff465577823ed387 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 8 Jan 2026 03:50:58 +0800
+Subject: [PATCH 05/31] m panel fix-2
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+index 901bc450b..b62a33ac3 100644
+--- a/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
++++ b/drivers/video/fbdev/sunxi/disp2/disp/lcd/g1392.c
+@@ -126,8 +126,8 @@ static s32 lcd_open_flow(u32 sel)
+ {
+     __wrn("klcd_open_flow g1392\n");
+ 	LCD_OPEN_FUNC(sel, lcd_power_on, 0);
+-	LCD_OPEN_FUNC(sel, lcd_panel_init, 10);
+-	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 10);
++	LCD_OPEN_FUNC(sel, lcd_panel_init, 120);
++	LCD_OPEN_FUNC(sel, sunxi_lcd_tcon_enable, 120);
+ 	LCD_OPEN_FUNC(sel, lcd_bl_open, 0);
+ 	return 0;
+ }
+-- 
+2.34.1
+
