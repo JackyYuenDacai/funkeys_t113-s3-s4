@@ -168,9 +168,6 @@ void _lv_indev_read(lv_indev_t * indev, lv_indev_data_t * data)
 
     /* For touchpad sometimes users don't set the last pressed coordinate on release.
      * So be sure a coordinates are initialized to the last point */
-
-    printf("lv_indev_read: reading input device %s", indev->driver->name);
-
     if(indev->driver->type == LV_INDEV_TYPE_POINTER) {
         data->point.x = indev->proc.types.pointer.last_raw_point.x;
         data->point.y = indev->proc.types.pointer.last_raw_point.y;
@@ -192,7 +189,7 @@ void _lv_indev_read(lv_indev_t * indev, lv_indev_data_t * data)
         LV_LOG_WARN("indev_read_cb is not registered");
     }
 }
-
+ 
 /**********************
  *   STATIC FUNCTIONS
  **********************/

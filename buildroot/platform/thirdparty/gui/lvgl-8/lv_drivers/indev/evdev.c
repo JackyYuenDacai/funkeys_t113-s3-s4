@@ -80,10 +80,7 @@ bool evdev_set_file(char* dev_name)
 #if USE_BSD_EVDEV
      evdev_fd = open(dev_name, O_RDWR | O_NOCTTY);
 #else
-    if (access("/dev/input/touchscreen", F_OK) != 0)
-        evdev_fd = open(EVDEV_NAME, O_RDWR | O_NOCTTY | O_NDELAY);
-    else
-        evdev_fd = open("/dev/input/touchscreen", O_RDWR | O_NOCTTY | O_NDELAY);
+     evdev_fd = open(dev_name, O_RDWR | O_NOCTTY | O_NDELAY);
 #endif
 
      if(evdev_fd == -1) {
@@ -155,11 +152,6 @@ void evdev_read(lv_indev_drv_t * drv, lv_indev_data_t * data)
                                 if(in.value == -1)
                                     evdev_button = LV_INDEV_STATE_REL;
                                 else if(in.value == 0)
-                                    evdev_button = LV_INDEV_STATE_PR;
-            } else if(in.code == ABS_PRESSURE) {
-                                if(in.value == 0)
-                                    evdev_button = LV_INDEV_STATE_REL;
-                                else if(in.value > 0)
                                     evdev_button = LV_INDEV_STATE_PR;
             }
         } else if(in.type == EV_KEY) {
