@@ -1,27 +1,9 @@
-/* g2d_driver.h
- *
- * Copyright (c)	2011 xxxx Electronics
- *					2011 Yupu Tang
- *
- * @ F23 G2D driver
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.See the
- * GNU General Public License for more details.
- */
-
 #ifndef __G2D_DRIVER_H
 #define __G2D_DRIVER_H
 
-#include <stdbool.h>
 #include <linux/types.h>
 #include <linux/ioctl.h>
+
 
 /* data format */
 typedef enum {
@@ -533,4 +515,3 @@ typedef enum {
 } g2d_cmd;
 
 #endif	/* __G2D_DRIVER_H */
-

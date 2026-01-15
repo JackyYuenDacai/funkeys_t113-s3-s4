@@ -227,7 +227,7 @@ int sunxifb_g2d_fill(lv_color_t *dest_buf, const lv_area_t *disp_area,
         info.dst_image_h.alpha = 255;
     } else {
         info.dst_image_h.alpha = opa;
-        color.ch.alpha = opa;
+        //color.ch.alpha = opa;
     }
     info.dst_image_h.mode = G2D_PIXEL_ALPHA;
     info.dst_image_h.color = color.full;
