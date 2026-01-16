@@ -1,0 +1,28 @@
+From 840b54d244a06ee71051d146fa897cbdb3659edb Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Fri, 16 Jan 2026 23:04:51 +0800
+Subject: [PATCH] fix 32bit time compile
+
+Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+---
+ uinput.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/uinput.c b/uinput.c
+index cf86381..564533d 100755
+--- a/uinput.c
++++ b/uinput.c
+@@ -245,8 +245,8 @@ static int sendSync(void)
+   ie.type = EV_SYN;
+   ie.code = SYN_REPORT;
+   ie.value = 0;
+-  ie.time.tv_sec = 0;
+-  ie.time.tv_usec = 0;
++  ie.__usec = 0;
++  ie.__sec = 0;
+   if(write(uidev_fd, &ie, sizeof(struct input_event)) < 0)
+     die("error: sendSync - write");
+ 
+-- 
+2.34.1
+
