@@ -137,7 +137,7 @@ is_usb_data_connected () {
     local udc_state=$(cat /sys/class/udc/4100000.udc-controller/state)
 
     #if [ "x${udc_state}" = "xconfigured" -a "${usb_present}" -eq 1 ]; then
-    if [ "${udc_state}" = "configured" -a "${usb_present}" -eq 1 ]; then
+    if [ "${udc_state}" = "configured" ]; then
 
 	# Connected succesfully to a host
 	echo "yes"

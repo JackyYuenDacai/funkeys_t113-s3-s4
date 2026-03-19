@@ -1,0 +1,61 @@
+From e9ff439be40dba2bda0e3d8b2f912911c3e3b32b Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 17:41:51 +0800
+Subject: [PATCH] menu-btn-8
+
+---
+ funkey/fk_menu.c | 38 ++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 38 insertions(+)
+
+diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+index b2bb850..585a5e3 100644
+--- a/funkey/fk_menu.c
++++ b/funkey/fk_menu.c
+@@ -1441,6 +1441,44 @@ int FK_RunMenu(SDL_Surface *screen)
+ 					}
+ 					break;
+ 				}
++
++				/// -------- Handle Joystick Button Events (convert to keyboard) --------
++				case SDL_JOYBUTTONDOWN:
++					{
++						int sym = -1;
++						switch (event.jbutton.button) {
++						case 1:  sym = SDLK_a;      break; /* A = OK/confirm */
++						case 10: sym = SDLK_ESCAPE; break; /* HOME = back */
++						case 9:  sym = SDLK_s;      break; /* START = alt confirm */
++						case 8:  sym = SDLK_b;      break; /* SELECT = cancel */
++						}
++						if (sym > 0) {
++							SDL_Event keyevent;
++							keyevent.type = SDL_KEYDOWN;
++							keyevent.key.keysym.sym = sym;
++							SDL_PushEvent(&keyevent);
++						}
++					}
++					break;
++
++				/// -------- Handle Joystick Hat (D-pad) Events --------
++				case SDL_JOYHATMOTION:
++					{
++						int hat = event.jhat.value;
++						int sym = -1;
++						if      (hat & SDL_HAT_UP)    sym = SDLK_UP;
++						else if (hat & SDL_HAT_DOWN)  sym = SDLK_DOWN;
++						else if (hat & SDL_HAT_LEFT)  sym = SDLK_LEFT;
++						else if (hat & SDL_HAT_RIGHT) sym = SDLK_RIGHT;
++						if (sym > 0) {
++							SDL_Event keyevent;
++							keyevent.type = SDL_KEYDOWN;
++							keyevent.key.keysym.sym = sym;
++							SDL_PushEvent(&keyevent);
++						}
++					}
++					break;
++				}
+ 		}
+ 
+ 		/// --------- Handle Scroll effect ---------
+-- 
+2.34.1
+

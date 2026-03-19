@@ -1,0 +1,32 @@
+From b21a7aa7090760368346effd64ed8785403234f1 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 16:29:51 +0800
+Subject: [PATCH] menu-btn
+
+---
+ main.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/main.c b/main.c
+index 8d1389a..0929e38 100644
+--- a/main.c
++++ b/main.c
+@@ -400,12 +400,14 @@ static void perform_emu_action(void) {
+ 	eaction = EACTION_NONE;
+ 
+ 	if (prev_action != EACTION_NONE && prev_action == action) return;
+-
++	printf("DEBUG: perform_emu_action triggered!\n");
+ 	switch (action)
+ 	{
+ 	case EACTION_NONE:
+ 		break;
+ 	case EACTION_MENU:
++		printf("DEBUG: EACTION_MENU triggered!\n"); return;
++		showload();
+ 		toggle_fast_forward(1); /* Force FF off */
+ 		sram_write();
+ 		rtc_write();
+-- 
+2.34.1
+

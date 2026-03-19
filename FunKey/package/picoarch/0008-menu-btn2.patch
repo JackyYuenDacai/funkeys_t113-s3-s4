@@ -1,0 +1,25 @@
+From 9fac8284118483498072878800a0ef2e411aa1bc Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 16:43:24 +0800
+Subject: [PATCH] menu-btn2
+
+---
+ main.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/main.c b/main.c
+index 0929e38..a3a1c02 100644
+--- a/main.c
++++ b/main.c
+@@ -400,7 +400,7 @@ static void perform_emu_action(void) {
+ 	eaction = EACTION_NONE;
+ 
+ 	if (prev_action != EACTION_NONE && prev_action == action) return;
+-	printf("DEBUG: perform_emu_action triggered!\n");
++	printf("DEBUG: perform_emu_action triggered! action=%d\n", action);
+ 	switch (action)
+ 	{
+ 	case EACTION_NONE:
+-- 
+2.34.1
+

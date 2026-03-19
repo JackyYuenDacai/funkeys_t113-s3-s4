@@ -1,0 +1,1859 @@
+From a622c55d1ef379a2858bce183536cd0df6e37113 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Tue, 17 Mar 2026 19:14:03 +0800
+Subject: [PATCH] joy dpad
+
+---
+ .gitignore                 |   1 +
+ 0001-joystick-update.patch | 793 -------------------------------------
+ 0001-px-update.patch       |   2 +-
+ 0001-update.patch.bak      | 523 ------------------------
+ libpicofe/in_sdl.c         | 323 +++++++++++++++
+ libpicofe/input.h          |   9 +
+ libpicofe/menu.c           |  17 +-
+ 7 files changed, 349 insertions(+), 1319 deletions(-)
+ delete mode 100644 0001-joystick-update.patch
+ delete mode 100644 0001-update.patch.bak
+
+diff --git a/.gitignore b/.gitignore
+index 6fdb91e..d876b42 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -35,3 +35,4 @@ picoarch
+ /snes9x2005_plus
+ /snes9x2010
+ /stella2014
++*.patch
+\ No newline at end of file
+diff --git a/0001-joystick-update.patch b/0001-joystick-update.patch
+deleted file mode 100644
+index 551b3c6..0000000
+--- a/0001-joystick-update.patch
++++ /dev/null
+@@ -1,793 +0,0 @@
+-From 5797027969ed7e2cd27c827ebc5ed5e7124529af Mon Sep 17 00:00:00 2001
+-From: Jacky Yuen <jackyyuen10@gmail.com>
+-Date: Tue, 17 Mar 2026 17:47:52 +0800
+-Subject: [PATCH] joystick-update
+-
+----
+- 0001-px-update.patch | 698 +++++++++++++++++++++++++++++++++++++++++--
+- libpicofe/in_sdl.c   |   1 +
+- plat_funkey.c        |  12 +
+- 3 files changed, 694 insertions(+), 17 deletions(-)
+-
+-diff --git a/0001-px-update.patch b/0001-px-update.patch
+-index 886772c..65faa10 100644
+---- a/0001-px-update.patch
+-+++ b/0001-px-update.patch
+-@@ -1,18 +1,676 @@
+--From b80c3faff3c2c856a3ad33704c385dfece462906 Mon Sep 17 00:00:00 2001
+-+From f4347d975486aadb4759434932e731aeb5128f14 Mon Sep 17 00:00:00 2001
+- From: Jacky Yuen <jackyyuen10@gmail.com>
+--Date: Sat, 17 Jan 2026 23:27:24 +0800
+-+Date: Sun, 18 Jan 2026 03:00:27 +0800
+- Subject: [PATCH] px update
+- 
+- Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+- ---
+-- 0001-update.patch.bak | 523 ++++++++++++++++++++++++++++++++++++++++++
+-- funkey/fk_menu.c      |   6 +-
+-- main.c                |  16 +-
+-+ 0001-px-update.patch  | 650 ++++++++++++++++++++++++++++++++++++++++++
+-+ 0001-update.patch.bak | 523 +++++++++++++++++++++++++++++++++
+-+ funkey/fk_menu.c      |  12 +-
+-+ main.c                |  14 +
+-  scale.c               |  14 +-
+-  scale.h               |   8 +-
+-- 5 files changed, 544 insertions(+), 23 deletions(-)
+-+ 6 files changed, 1196 insertions(+), 25 deletions(-)
+-+ create mode 100644 0001-px-update.patch
+-  create mode 100644 0001-update.patch.bak
+- 
+-+diff --git a/0001-px-update.patch b/0001-px-update.patch
+-+new file mode 100644
+-+index 0000000..886772c
+-+--- /dev/null
+-++++ b/0001-px-update.patch
+-+@@ -0,0 +1,650 @@
+-++From b80c3faff3c2c856a3ad33704c385dfece462906 Mon Sep 17 00:00:00 2001
+-++From: Jacky Yuen <jackyyuen10@gmail.com>
+-++Date: Sat, 17 Jan 2026 23:27:24 +0800
+-++Subject: [PATCH] px update
+-++
+-++Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+-++---
+-++ 0001-update.patch.bak | 523 ++++++++++++++++++++++++++++++++++++++++++
+-++ funkey/fk_menu.c      |   6 +-
+-++ main.c                |  16 +-
+-++ scale.c               |  14 +-
+-++ scale.h               |   8 +-
+-++ 5 files changed, 544 insertions(+), 23 deletions(-)
+-++ create mode 100644 0001-update.patch.bak
+-++
+-++diff --git a/0001-update.patch.bak b/0001-update.patch.bak
+-++new file mode 100644
+-++index 0000000..22a143c
+-++--- /dev/null
+-+++++ b/0001-update.patch.bak
+-++@@ -0,0 +1,523 @@
+-+++From 5484d64e1fc79198f603b41c32bfbd623a7243b6 Mon Sep 17 00:00:00 2001
+-+++From: wj <545818496@qq.com>
+-+++Date: Sat, 11 May 2024 17:08:09 +0800
+-+++Subject: [PATCH] update
+-+++
+-+++---
+-+++ funkey/fk_menu.c | 123 ++++++++++++++++++++++++-----------------------
+-+++ funkey/fk_menu.h |   4 +-
+-+++ main.c           |  19 +++++++-
+-+++ scale.c          |  20 ++------
+-+++ scale.h          |  13 ++---
+-+++ 5 files changed, 91 insertions(+), 88 deletions(-)
+-+++
+-+++diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+-+++index 1983dd9..2b4a4ed 100644
+-+++--- a/funkey/fk_menu.c
+-++++++ b/funkey/fk_menu.c
+-+++@@ -54,10 +54,10 @@
+-+++ #define MENU_ERROR_PRINTF(...)
+-+++ #endif //MENU_ERROR
+-+++ 
+-+++-#define SCREEN_HORIZONTAL_SIZE      240 //RES_HW_SCREEN_HORIZONTAL
+-+++-#define SCREEN_VERTICAL_SIZE        240 //RES_HW_SCREEN_VERTICAL
+-++++#define SCREEN_HORIZONTAL_SIZE      640 //RES_HW_SCREEN_HORIZONTAL
+-++++#define SCREEN_VERTICAL_SIZE        480 //RES_HW_SCREEN_VERTICAL
+-+++ 
+-+++-#define SCROLL_SPEED_PX             30
+-++++#define SCROLL_SPEED_PX             100
+-+++ #define FPS_MENU                    60
+-+++ #define ARROWS_PADDING              8
+-+++ 
+-+++@@ -66,12 +66,12 @@
+-+++ #define MENU_BG_SQUARE_WIDTH        180
+-+++ #define MENU_BG_SQUARE_HEIGHT       140
+-+++ 
+-+++-#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/OpenSans-Bold.ttf"
+-+++-#define MENU_FONT_SIZE_TITLE        22
+-+++-#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/OpenSans-Bold.ttf"
+-+++-#define MENU_FONT_SIZE_INFO         16
+-+++-#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/OpenSans-Regular.ttf"
+-+++-#define MENU_FONT_SIZE_SMALL_INFO   13
+-++++#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/zhunyuan.ttf"
+-++++#define MENU_FONT_SIZE_TITLE        28
+-++++#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/zhunyuan.ttf"
+-++++#define MENU_FONT_SIZE_INFO         22
+-++++#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/zhunyuan.ttf"
+-++++#define MENU_FONT_SIZE_SMALL_INFO   18
+-+++ #define MENU_PNG_BG_PATH            "/usr/games/menu_resources/zone_bg.png"
+-+++ #define MENU_PNG_ARROW_TOP_PATH     "/usr/games/menu_resources/arrow_top.png"
+-+++ #define MENU_PNG_ARROW_BOTTOM_PATH  "/usr/games/menu_resources/arrow_bottom.png"
+-+++@@ -281,7 +281,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_VOLUME:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_VOLUME\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "VOLUME", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "音量", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -296,7 +296,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_BRIGHTNESS:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_BRIGHTNESS\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "BRIGHTNESS", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "亮度", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -311,7 +311,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_SAVE:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_SAVE\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "SAVE", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "保存", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -321,7 +321,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_LOAD:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_LOAD\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "LOAD", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "加载", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -331,7 +331,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_ASPECT_RATIO:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_ASPECT_RATIO\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "ASPECT RATIO", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "纵横比", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -341,7 +341,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_USB:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_USB\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "USB", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "USB", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -351,7 +351,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_THEME:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_THEME\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "SET THEME", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET THEME", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -361,12 +361,12 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_LAUNCHER:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_LAUNCHER\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "SET LAUNCHER", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET LAUNCHER", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "GMENU2X", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "GMENU2X", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -376,7 +376,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_RO_RW:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_RO_RW\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "SET SYSTEM:", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET SYSTEM:", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -386,7 +386,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_ADVANCED:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_ADVANCED\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "ADVANCED", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "高级设置", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -396,7 +396,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_EXIT:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_EXIT\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "EXIT GAME", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "退出游戏", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -406,7 +406,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+-+++ 	case MENU_TYPE_POWERDOWN:
+-+++ 		MENU_DEBUG_PRINTF("Init MENU_TYPE_POWERDOWN\n");
+-+++ 		/// ------ Text ------
+-+++-		text_surface = TTF_RenderText_Blended(menu_title_font, "POWERDOWN", text_color);
+-++++		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "POWERDOWN", text_color);
+-+++ 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-+++@@ -703,26 +703,26 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ #ifdef HAS_MENU_SAVE
+-+++ 		case MENU_TYPE_SAVE:
+-+++ 			/// ---- Write slot -----
+-+++-			sprintf(text_tmp, "IN SLOT   < %d >", state_slot+1);
+-+++-			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++			sprintf(text_tmp, "位置   < %d >", state_slot+1);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 
+-+++ 			if(menu_action){
+-+++-				sprintf(text_tmp, "Saving...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "保存中...");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			}
+-+++ 			else{
+-+++ 				if(menu_confirmation){
+-+++-					sprintf(text_tmp, "Are you sure?");
+-+++-					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++					sprintf(text_tmp, "确定吗?");
+-++++					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				}
+-+++ 				else{
+-+++ 					if (state_exists(state_slot)) {
+-+++-						text_surface = TTF_RenderText_Blended(menu_info_font, "Used", text_color);
+-++++						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "已使用", text_color);
+-+++ 					} else {
+-+++-						text_surface = TTF_RenderText_Blended(menu_info_font, "Free", text_color);
+-++++						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "未使用", text_color);
+-+++ 					}
+-+++ 				}
+-+++ 			}
+-+++@@ -734,26 +734,26 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ #ifdef HAS_MENU_LOAD
+-+++ 		case MENU_TYPE_LOAD:
+-+++ 			/// ---- Write slot -----
+-+++-			sprintf(text_tmp, "FROM SLOT   < %d >", state_slot+1);
+-+++-			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++			sprintf(text_tmp, "位置   < %d >", state_slot+1);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 
+-+++ 			if(menu_action){
+-+++-				sprintf(text_tmp, "Loading...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "加载中...");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			}
+-+++ 			else{
+-+++ 				if(menu_confirmation){
+-+++-					sprintf(text_tmp, "Are you sure?");
+-+++-					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++					sprintf(text_tmp, "确定吗?");
+-++++					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				}
+-+++ 				else{
+-+++ 					if (state_exists(state_slot)) {
+-+++-						text_surface = TTF_RenderText_Blended(menu_info_font, "Used", text_color);
+-++++						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "已使用", text_color);
+-+++ 					} else {
+-+++-						text_surface = TTF_RenderText_Blended(menu_info_font, "Free", text_color);
+-++++						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "未使用", text_color);
+-+++ 					}
+-+++ 				}
+-+++ 			}
+-+++@@ -765,7 +765,7 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ #ifdef HAS_MENU_ASPECT_RATIO
+-+++ 		case MENU_TYPE_ASPECT_RATIO:
+-+++ 			sprintf(text_tmp, "<   %s   >", aspect_ratio_name[menu_aspect_ratio]);
+-+++-			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + padding_y_from_center_menu_zone;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -775,21 +775,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ 		case MENU_TYPE_USB:
+-+++ 			/// ---- Write slot -----
+-+++ 			sprintf(text_tmp, "%s USB", usb_sharing?"EJECT":"MOUNT");
+-+++-			text_surface = TTF_RenderText_Blended(menu_title_font, text_tmp, text_color);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_title_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 
+-+++ 			if(menu_action){
+-+++ 				sprintf(text_tmp, "in progress ...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 			}
+-+++ 			else if(menu_confirmation){
+-+++-				sprintf(text_tmp, "Are you sure?");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "确定吗?");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -811,21 +811,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ 			}
+-+++ 			sprintf(text_tmp, "< %s%s >", curLayoutName, dots?"...":"" );
+-+++ 
+-+++-			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 
+-+++ 			if(menu_action){
+-+++ 				sprintf(text_tmp, "In progress...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 			}
+-+++ 			else if(menu_confirmation){
+-+++-				sprintf(text_tmp, "Are you sure?");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "确定吗?");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -836,14 +836,14 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ 		case MENU_TYPE_LAUNCHER:
+-+++ 			if(menu_action){
+-+++ 				sprintf(text_tmp, "In progress...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 			}
+-+++ 			else if(menu_confirmation){
+-+++-				sprintf(text_tmp, "Are you sure?");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "确定吗?");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -859,15 +859,15 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ #if defined(HAS_MENU_EXIT) || defined(HAS_MENU_POWERDOWN)
+-+++ 			if(menu_action){
+-+++ 				sprintf(text_tmp, "Shutting down...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 			}
+-+++ 			else{
+-+++ 				if(menu_confirmation){
+-+++-					sprintf(text_tmp, "Are you sure?");
+-+++-					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++					sprintf(text_tmp, "确定吗?");
+-++++					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 					text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 					text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 					SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -878,21 +878,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+-+++ #ifdef HAS_MENU_RO_RW
+-+++ 		case MENU_TYPE_RO_RW:
+-+++ 			sprintf(text_tmp, "%s", read_write?"READ-ONLY":"READ-WRITE");
+-+++-			text_surface = TTF_RenderText_Blended(menu_title_font, text_tmp, text_color);
+-++++			text_surface = TTF_RenderUTF8_Blended(menu_title_font, text_tmp, text_color);
+-+++ 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++ 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 
+-+++ 			if(menu_action){
+-+++ 				sprintf(text_tmp, "in progress ...");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++ 			}
+-+++ 			else if(menu_confirmation){
+-+++-				sprintf(text_tmp, "Are you sure?");
+-+++-				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++				sprintf(text_tmp, "确定吗?");
+-++++				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++ 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++ 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++ 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-+++@@ -1655,15 +1655,16 @@ int FK_RunResumeMenu(SDL_Surface *hw_screen)
+-+++             }
+-+++ 
+-+++             /* Draw resume or reset option */
+-+++-            text_surface = TTF_RenderText_Blended(menu_title_font, resume_options_str[option_idx], text_color);
+-++++            text_surface = TTF_RenderUTF8_Blended(menu_title_font, resume_options_str[option_idx], text_color);
+-+++             text_pos.x = (hw_screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++             text_pos.y = hw_screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-+++             SDL_BlitSurface(text_surface, NULL, hw_screen, &text_pos);
+-+++ 
+-+++             /* Draw confirmation */
+-+++             if(menu_confirmation){
+-+++-                sprintf(text_tmp, "Are you sure ?");
+-+++-                text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-++++                //sprintf(text_tmp, "Are you sure ?");
+-++++				sprintf(text_tmp, "确定吗 ?");
+-++++                text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-+++                 text_pos.x = (hw_screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-+++                 text_pos.y = hw_screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-+++                 SDL_BlitSurface(text_surface, NULL, hw_screen, &text_pos);
+-+++@@ -1689,4 +1690,4 @@ int FK_RunResumeMenu(SDL_Surface *hw_screen)
+-+++     }
+-+++ 
+-+++     return option_idx;
+-+++-}
+-++++}
+-+++\ No newline at end of file
+-+++diff --git a/funkey/fk_menu.h b/funkey/fk_menu.h
+-+++index 8b9e7a4..0f64c5e 100644
+-+++--- a/funkey/fk_menu.h
+-++++++ b/funkey/fk_menu.h
+-+++@@ -95,8 +95,8 @@ typedef enum {ASPECT_RATIOS} ENUM_ASPECT_RATIOS_TYPES;
+-+++ 
+-+++ ///------ Definition of the different resume options
+-+++ #define RESUME_OPTIONS \
+-+++-    X(RESUME_YES, "RESUME GAME") \
+-+++-    X(RESUME_NO, "NEW GAME") \
+-++++    X(RESUME_YES, "继续游戏") \
+-++++    X(RESUME_NO, "新游戏") \
+-+++     X(NB_RESUME_OPTIONS, "")
+-+++ 
+-+++ ////------ Enumeration of the different resume options ------
+-+++diff --git a/main.c b/main.c
+-+++index 1408a46..6c4def3 100644
+-+++--- a/main.c
+-++++++ b/main.c
+-+++@@ -105,6 +105,21 @@ static int screenshot_file_name(char *name, size_t len) {
+-+++ 	return -1;
+-+++ }
+-+++ 
+-++++static void showload(void)
+-++++{
+-++++    SDL_Surface *img_loading = IMG_Load("/usr/games/menu_resources/loading.png");
+-++++    if(!img_loading) {
+-++++        printf("ERROR IMG_Load: %s\n", IMG_GetError());
+-++++    }
+-++++	SDL_Surface *screen = SDL_GetVideoSurface();
+-++++	SDL_Rect pos_arrow_bottom;
+-++++	pos_arrow_bottom.x = (screen->w - img_loading->w) / 2;
+-++++	pos_arrow_bottom.y = (screen->h - img_loading->h) / 2;
+-++++	SDL_BlitSurface(img_loading, NULL, screen, &pos_arrow_bottom);
+-++++	SDL_Flip(screen);
+-++++	SDL_FreeSurface(img_loading);
+-++++}
+-++++
+-+++ static int png_write_rgb565(const uint16_t *buf, png_structp png_ptr, int w, int h) {
+-+++ 	png_byte *row_pointer = calloc(w * 3, sizeof(png_byte));
+-+++ 	int ret = -1;
+-+++@@ -211,7 +226,7 @@ void set_defaults(void)
+-+++ 	enable_audio = 1;
+-+++ 	enable_drc = 1;
+-+++ 	audio_buffer_size = 5;
+-+++-	scale_size = SCALE_SIZE_NONE;
+-++++	scale_size = SCALE_SIZE_FULL;//SCALE_SIZE_NONE;
+-+++ 	scale_filter = SCALE_FILTER_NEAREST;
+-+++ 
+-+++ 	/* Sets better defaults for small screen */
+-+++@@ -620,7 +635,7 @@ int main(int argc, char **argv) {
+-+++ 	if (plat_init()) {
+-+++ 		quit(-1);
+-+++ 	}
+-+++-
+-++++	showload();
+-+++ 	if (menu_init()) {
+-+++ 		quit(-1);
+-+++ 	}
+-+++diff --git a/scale.c b/scale.c
+-+++index 5857589..842e4ae 100644
+-+++--- a/scale.c
+-++++++ b/scale.c
+-+++@@ -186,19 +186,7 @@ static void scale_blend(unsigned w, unsigned h, size_t pitch, const void *src, v
+-+++ 			if (!lines)
+-+++ 				pnext -= (pitch / sizeof(uint16_t));
+-+++ 
+-+++-			if (dy <= bh[0] && dy + rat_h > (rat_dst_h + rat_dst_h - bh[0])) {
+-+++-				/* Will miss next line, blend in instead */
+-+++-				const uint32_t *src32 = (const uint32_t *)src;
+-+++-				const uint32_t *pnext32 = (const uint32_t *)pnext;
+-+++-				uint32_t *pblend32 = (uint32_t *)pblend;
+-+++-				int count = w / 2;
+-+++-
+-+++-				while(count--) {
+-+++-					*pblend32++ = AVERAGE32(*src32, *pnext32);
+-+++-					src32++;
+-+++-					pnext32++;
+-+++-				}
+-+++-			} else if (dy > rat_dst_h - bh[0]) {
+-++++			if (dy > rat_dst_h - bh[0]) {
+-+++ 				pblend = pnext;
+-+++ 			} else if (dy <= bh[0]) {
+-+++ 				/* Drops const, won't get touched later though */
+-+++@@ -239,17 +227,15 @@ static void scale_blend(unsigned w, unsigned h, size_t pitch, const void *src, v
+-+++ 				while (dx < rat_dst_w) {
+-+++ 					if (a == b) {
+-+++ 						out = a;
+-+++-					} else if (dx <= bw[0] && dx + rat_w > (rat_dst_w + rat_dst_w - bw[0])) {
+-+++-						out = AVERAGE16_NOCHK(a, b); // will miss next pixel, blend in instead
+-+++ 					} else if (dx > rat_dst_w - bw[0]) { // top quintile, bbbb
+-+++ 						out = b;
+-+++ 					} else if (dx <= bw[0]) { // last quintile, aaaa
+-+++ 						out = a;
+-+++ 					} else {
+-+++ 						if (dx > rat_dst_w - bw[1]) { // 2nd quintile, abbb
+-+++-							a = AVERAGE16_NOCHK(a, b);
+-++++							a = AVERAGE16_NOCHK(a,b);
+-+++ 						} else if (dx <= bw[1]) { // 4th quintile, aaab
+-+++-							b = AVERAGE16_NOCHK(a, b);
+-++++							b = AVERAGE16_NOCHK(a,b);
+-+++ 						}
+-+++ 
+-+++ 						out = AVERAGE16_NOCHK(a, b); // also 3rd quintile, aabb
+-+++diff --git a/scale.h b/scale.h
+-+++index fe02d92..c2f8003 100644
+-+++--- a/scale.h
+-++++++ b/scale.h
+-+++@@ -1,11 +1,12 @@
+-+++ #ifndef __SCALE_H__
+-+++ #define __SCALE_H__
+-+++ 
+-+++-#ifdef FUNKEY_S
+-+++-#define SCREEN_WIDTH 240
+-+++-#else
+-+++-#define SCREEN_WIDTH 320
+-+++-#endif
+-++++#define SCREEN_WIDTH 1080
+-++++// #ifdef FUNKEY_S
+-++++// #define SCREEN_WIDTH 240
+-++++// #else
+-++++// #define SCREEN_WIDTH 320
+-++++// #endif
+-+++ 
+-+++ #if SCREEN_WIDTH == 240
+-+++ #define HUD_LEN 31
+-+++@@ -13,7 +14,7 @@
+-+++ #define HUD_LEN 41
+-+++ #endif
+-+++ 
+-+++-#define SCREEN_HEIGHT 240
+-++++#define SCREEN_HEIGHT 1240
+-+++ #define SCREEN_BPP 2
+-+++ #define SCREEN_PITCH (SCREEN_BPP * SCREEN_WIDTH)
+-+++ 
+-+++-- 
+-+++2.25.1
+-+++
+-++diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+-++index 111a1fc..23c85ea 100644
+-++--- a/funkey/fk_menu.c
+-+++++ b/funkey/fk_menu.c
+-++@@ -57,10 +57,10 @@ extern int video_height;
+-++ #define MENU_ERROR_PRINTF(...)
+-++ #endif //MENU_ERROR
+-++ 
+-++-#define SCREEN_HORIZONTAL_SIZE      240 //RES_HW_SCREEN_HORIZONTAL
+-++-#define SCREEN_VERTICAL_SIZE        240 //RES_HW_SCREEN_VERTICAL
+-+++#define SCREEN_HORIZONTAL_SIZE      1080 //RES_HW_SCREEN_HORIZONTAL
+-+++#define SCREEN_VERTICAL_SIZE        1240 //RES_HW_SCREEN_VERTICAL
+-++ 
+-++-#define SCROLL_SPEED_PX             30
+-+++#define SCROLL_SPEED_PX             120
+-++ #define FPS_MENU                    60
+-++ #define ARROWS_PADDING              8
+-++ 
+-++diff --git a/main.c b/main.c
+-++index 82827f6..df9795d 100644
+-++--- a/main.c
+-+++++ b/main.c
+-++@@ -108,6 +108,20 @@ static int screenshot_file_name(char *name, size_t len) {
+-++ 	*name = '\0';
+-++ 	return -1;
+-++ }
+-+++static void showload(void)
+-+++{
+-+++    SDL_Surface *img_loading = IMG_Load("/usr/games/menu_resources/loading.png");
+-+++    if(!img_loading) {
+-+++        printf("ERROR IMG_Load: %s\n", IMG_GetError());
+-+++    }
+-+++	SDL_Surface *screen = SDL_GetVideoSurface();
+-+++	SDL_Rect pos_arrow_bottom;
+-+++	pos_arrow_bottom.x = (screen->w - img_loading->w) / 2;
+-+++	pos_arrow_bottom.y = (screen->h - img_loading->h) / 2;
+-+++	SDL_BlitSurface(img_loading, NULL, screen, &pos_arrow_bottom);
+-+++	SDL_Flip(screen);
+-+++	SDL_FreeSurface(img_loading);
+-+++}
+-++ 
+-++ static int png_write_rgb565(const uint16_t *buf, png_structp png_ptr, int w, int h) {
+-++ 	png_byte *row_pointer = calloc(w * 3, sizeof(png_byte));
+-++@@ -216,7 +230,7 @@ void set_defaults(void)
+-++ 	enable_drc = 1;
+-++ 	use_srm = 0;
+-++ 	audio_buffer_size = 5;
+-++-	scale_size = SCALE_SIZE_SCALED;
+-+++	scale_size = SCALE_SIZE_FULL;
+-++ 	scale_filter = SCALE_FILTER_SMOOTH;
+-++ 
+-++ 	/* Sets better defaults for small screen */
+-++diff --git a/scale.c b/scale.c
+-++index 3bcf511..5e2bf2c 100644
+-++--- a/scale.c
+-+++++ b/scale.c
+-++@@ -192,19 +192,7 @@ static void scale_blend(unsigned w, unsigned h, size_t pitch, const void *src, v
+-++ 			if (!lines)
+-++ 				pnext -= (pitch / sizeof(uint16_t));
+-++ 
+-++-			if (dy <= bh[0] && dy + rat_h > (rat_dst_h + rat_dst_h - bh[0])) {
+-++-				/* Will miss next line, blend in instead */
+-++-				const uint32_t *src32 = (const uint32_t *)src;
+-++-				const uint32_t *pnext32 = (const uint32_t *)pnext;
+-++-				uint32_t *pblend32 = (uint32_t *)pblend;
+-++-				int count = w / 2;
+-++-
+-++-				while(count--) {
+-++-					*pblend32++ = AVERAGE32(*src32, *pnext32);
+-++-					src32++;
+-++-					pnext32++;
+-++-				}
+-++-			} else if (dy > rat_dst_h - bh[0]) {
+-+++			if (dy > rat_dst_h - bh[0]) {
+-++ 				pblend = pnext;
+-++ 			} else if (dy <= bh[0]) {
+-++ 				/* Drops const, won't get touched later though */
+-++diff --git a/scale.h b/scale.h
+-++index 02afc2b..1656e13 100644
+-++--- a/scale.h
+-+++++ b/scale.h
+-++@@ -1,11 +1,7 @@
+-++ #ifndef __SCALE_H__
+-++ #define __SCALE_H__
+-++ 
+-++-#ifdef FUNKEY_S
+-++-#define SCREEN_WIDTH 240
+-++-#else
+-++-#define SCREEN_WIDTH 320
+-++-#endif
+-+++#define SCREEN_WIDTH 1080
+-++ 
+-++ #if SCREEN_WIDTH == 240
+-++ #define HUD_LEN 31
+-++@@ -13,7 +9,7 @@
+-++ #define HUD_LEN 41
+-++ #endif
+-++ 
+-++-#define SCREEN_HEIGHT 240
+-+++#define SCREEN_HEIGHT 1240
+-++ #define SCREEN_BPP 2
+-++ #define SCREEN_PITCH (SCREEN_BPP * SCREEN_WIDTH)
+-++ 
+-++-- 
+-++2.34.1
+-++
+- diff --git a/0001-update.patch.bak b/0001-update.patch.bak
+- new file mode 100644
+- index 0000000..22a143c
+-@@ -543,7 +1201,7 @@ index 0000000..22a143c
+- +2.25.1
+- +
+- diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+--index 111a1fc..23c85ea 100644
+-+index 111a1fc..b2bb850 100644
+- --- a/funkey/fk_menu.c
+- +++ b/funkey/fk_menu.c
+- @@ -57,10 +57,10 @@ extern int video_height;
+-@@ -560,8 +1218,23 @@ index 111a1fc..23c85ea 100644
+-  #define FPS_MENU                    60
+-  #define ARROWS_PADDING              8
+-  
+-+@@ -69,11 +69,11 @@ extern int video_height;
+-+ #define MENU_BG_SQUARE_WIDTH        180
+-+ #define MENU_BG_SQUARE_HEIGHT       140
+-+ 
+-+-#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/OpenSans-Bold.ttf"
+-++#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/zhunyuan.ttf"
+-+ #define MENU_FONT_SIZE_TITLE        22
+-+-#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/OpenSans-Bold.ttf"
+-++#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/zhunyuan.ttf"
+-+ #define MENU_FONT_SIZE_INFO         16
+-+-#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/OpenSans-Regular.ttf"
+-++#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/zhunyuan.ttf"
+-+ #define MENU_FONT_SIZE_SMALL_INFO   13
+-+ #define MENU_PNG_BG_PATH            "/usr/games/menu_resources/zone_bg.png"
+-+ #define MENU_PNG_ARROW_TOP_PATH     "/usr/games/menu_resources/arrow_top.png"
+- diff --git a/main.c b/main.c
+--index 82827f6..df9795d 100644
+-+index 82827f6..8d1389a 100644
+- --- a/main.c
+- +++ b/main.c
+- @@ -108,6 +108,20 @@ static int screenshot_file_name(char *name, size_t len) {
+-@@ -585,15 +1258,6 @@ index 82827f6..df9795d 100644
+-  
+-  static int png_write_rgb565(const uint16_t *buf, png_structp png_ptr, int w, int h) {
+-  	png_byte *row_pointer = calloc(w * 3, sizeof(png_byte));
+--@@ -216,7 +230,7 @@ void set_defaults(void)
+-- 	enable_drc = 1;
+-- 	use_srm = 0;
+-- 	audio_buffer_size = 5;
+---	scale_size = SCALE_SIZE_SCALED;
+--+	scale_size = SCALE_SIZE_FULL;
+-- 	scale_filter = SCALE_FILTER_SMOOTH;
+-- 
+-- 	/* Sets better defaults for small screen */
+- diff --git a/scale.c b/scale.c
+- index 3bcf511..5e2bf2c 100644
+- --- a/scale.c
+-diff --git a/libpicofe/in_sdl.c b/libpicofe/in_sdl.c
+-index a84c781..bb0163c 100644
+---- a/libpicofe/in_sdl.c
+-+++ b/libpicofe/in_sdl.c
+-@@ -325,6 +325,7 @@ static int handle_joy_event(struct in_sdl_state *state, SDL_Event *event,
+- 	case SDL_JOYBUTTONUP:
+- 		if (event->jbutton.which != state->joy_id)
+- 			return -2;
+-+		printf("DEBUG: SDL joystick button %d state=%d\n", event->jbutton.button, event->jbutton.state);
+- 		kc = (int)event->jbutton.button + SDLK_WORLD_0;
+- 		down = event->jbutton.state == SDL_PRESSED;
+- 		ret = 1;
+-diff --git a/plat_funkey.c b/plat_funkey.c
+-index d05e718..f144fc3 100644
+---- a/plat_funkey.c
+-+++ b/plat_funkey.c
+-@@ -23,6 +23,15 @@ static const struct in_default_bind in_sdl_defbinds[] = {
+- 	{ SDLK_n, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_R },
+- 	{ SDLK_v, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_L2 },
+- 	{ SDLK_o, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_R2 },
+-+	/* joystick button mappings */
+-+	{ SDLK_WORLD_0, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_A },
+-+	{ SDLK_WORLD_1, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_B },
+-+	{ SDLK_WORLD_2, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_X },
+-+	{ SDLK_WORLD_3, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_Y },
+-+	{ SDLK_WORLD_4, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_START },
+-+	{ SDLK_WORLD_5, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_SELECT },
+-+	{ SDLK_WORLD_6, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_L },
+-+	{ SDLK_WORLD_7, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_R },
+- 	{ SDLK_q, IN_BINDTYPE_EMU, EACTION_MENU },
+- 	{ SDLK_h, IN_BINDTYPE_EMU, EACTION_NEXT_SCALER },
+- 	{ SDLK_j, IN_BINDTYPE_EMU, EACTION_PREVIOUS_ZOOM_STEP },
+-@@ -55,6 +64,9 @@ const struct menu_keymap in_sdl_joy_map[] =
+- 	{ SDLK_WORLD_1, PBTN_MBACK },
+- 	{ SDLK_WORLD_2, PBTN_MA2 },
+- 	{ SDLK_WORLD_3, PBTN_MA3 },
+-+	{ SDLK_WORLD_4, PBTN_MENU },
+-+	{ SDLK_WORLD_6, PBTN_L },
+-+	{ SDLK_WORLD_7, PBTN_R },
+- };
+- 
+- static const char * const in_sdl_key_names[SDLK_LAST] = {
+--- 
+-2.34.1
+-
+diff --git a/0001-px-update.patch b/0001-px-update.patch
+index 65faa10..3f97555 100644
+--- a/0001-px-update.patch
++++ b/0001-px-update.patch
+@@ -1,7 +1,7 @@
+ From f4347d975486aadb4759434932e731aeb5128f14 Mon Sep 17 00:00:00 2001
+ From: Jacky Yuen <jackyyuen10@gmail.com>
+ Date: Sun, 18 Jan 2026 03:00:27 +0800
+-Subject: [PATCH] px update
++Subject: [PATCH 1/4] px update
+ 
+ Signed-off-by: Jacky Yuen <jackyyuen10@gmail.com>
+ ---
+diff --git a/0001-update.patch.bak b/0001-update.patch.bak
+deleted file mode 100644
+index 22a143c..0000000
+--- a/0001-update.patch.bak
++++ /dev/null
+@@ -1,523 +0,0 @@
+-From 5484d64e1fc79198f603b41c32bfbd623a7243b6 Mon Sep 17 00:00:00 2001
+-From: wj <545818496@qq.com>
+-Date: Sat, 11 May 2024 17:08:09 +0800
+-Subject: [PATCH] update
+-
+----
+- funkey/fk_menu.c | 123 ++++++++++++++++++++++++-----------------------
+- funkey/fk_menu.h |   4 +-
+- main.c           |  19 +++++++-
+- scale.c          |  20 ++------
+- scale.h          |  13 ++---
+- 5 files changed, 91 insertions(+), 88 deletions(-)
+-
+-diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+-index 1983dd9..2b4a4ed 100644
+---- a/funkey/fk_menu.c
+-+++ b/funkey/fk_menu.c
+-@@ -54,10 +54,10 @@
+- #define MENU_ERROR_PRINTF(...)
+- #endif //MENU_ERROR
+- 
+--#define SCREEN_HORIZONTAL_SIZE      240 //RES_HW_SCREEN_HORIZONTAL
+--#define SCREEN_VERTICAL_SIZE        240 //RES_HW_SCREEN_VERTICAL
+-+#define SCREEN_HORIZONTAL_SIZE      640 //RES_HW_SCREEN_HORIZONTAL
+-+#define SCREEN_VERTICAL_SIZE        480 //RES_HW_SCREEN_VERTICAL
+- 
+--#define SCROLL_SPEED_PX             30
+-+#define SCROLL_SPEED_PX             100
+- #define FPS_MENU                    60
+- #define ARROWS_PADDING              8
+- 
+-@@ -66,12 +66,12 @@
+- #define MENU_BG_SQUARE_WIDTH        180
+- #define MENU_BG_SQUARE_HEIGHT       140
+- 
+--#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/OpenSans-Bold.ttf"
+--#define MENU_FONT_SIZE_TITLE        22
+--#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/OpenSans-Bold.ttf"
+--#define MENU_FONT_SIZE_INFO         16
+--#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/OpenSans-Regular.ttf"
+--#define MENU_FONT_SIZE_SMALL_INFO   13
+-+#define MENU_FONT_NAME_TITLE        "/usr/games/menu_resources/zhunyuan.ttf"
+-+#define MENU_FONT_SIZE_TITLE        28
+-+#define MENU_FONT_NAME_INFO         "/usr/games/menu_resources/zhunyuan.ttf"
+-+#define MENU_FONT_SIZE_INFO         22
+-+#define MENU_FONT_NAME_SMALL_INFO   "/usr/games/menu_resources/zhunyuan.ttf"
+-+#define MENU_FONT_SIZE_SMALL_INFO   18
+- #define MENU_PNG_BG_PATH            "/usr/games/menu_resources/zone_bg.png"
+- #define MENU_PNG_ARROW_TOP_PATH     "/usr/games/menu_resources/arrow_top.png"
+- #define MENU_PNG_ARROW_BOTTOM_PATH  "/usr/games/menu_resources/arrow_bottom.png"
+-@@ -281,7 +281,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_VOLUME:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_VOLUME\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "VOLUME", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "音量", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -296,7 +296,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_BRIGHTNESS:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_BRIGHTNESS\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "BRIGHTNESS", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "亮度", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -311,7 +311,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_SAVE:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_SAVE\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "SAVE", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "保存", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -321,7 +321,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_LOAD:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_LOAD\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "LOAD", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "加载", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -331,7 +331,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_ASPECT_RATIO:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_ASPECT_RATIO\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "ASPECT RATIO", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "纵横比", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -341,7 +341,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_USB:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_USB\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "USB", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "USB", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -351,7 +351,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_THEME:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_THEME\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "SET THEME", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET THEME", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -361,12 +361,12 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_LAUNCHER:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_LAUNCHER\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "SET LAUNCHER", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET LAUNCHER", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "GMENU2X", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "GMENU2X", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -376,7 +376,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_RO_RW:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_RO_RW\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "SET SYSTEM:", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "SET SYSTEM:", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 - padding_y_from_center_menu_zone*2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -386,7 +386,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_ADVANCED:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_ADVANCED\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "ADVANCED", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "高级设置", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -396,7 +396,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_EXIT:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_EXIT\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "EXIT GAME", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "退出游戏", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -406,7 +406,7 @@ static void add_menu_zone(ENUM_MENU_TYPE menu_type)
+- 	case MENU_TYPE_POWERDOWN:
+- 		MENU_DEBUG_PRINTF("Init MENU_TYPE_POWERDOWN\n");
+- 		/// ------ Text ------
+--		text_surface = TTF_RenderText_Blended(menu_title_font, "POWERDOWN", text_color);
+-+		text_surface = TTF_RenderUTF8_Blended(menu_title_font, "POWERDOWN", text_color);
+- 		text_pos.x = (surface->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 		text_pos.y = surface->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 		SDL_BlitSurface(text_surface, NULL, surface, &text_pos);
+-@@ -703,26 +703,26 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- #ifdef HAS_MENU_SAVE
+- 		case MENU_TYPE_SAVE:
+- 			/// ---- Write slot -----
+--			sprintf(text_tmp, "IN SLOT   < %d >", state_slot+1);
+--			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+			sprintf(text_tmp, "位置   < %d >", state_slot+1);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 
+- 			if(menu_action){
+--				sprintf(text_tmp, "Saving...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "保存中...");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			}
+- 			else{
+- 				if(menu_confirmation){
+--					sprintf(text_tmp, "Are you sure?");
+--					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+					sprintf(text_tmp, "确定吗?");
+-+					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				}
+- 				else{
+- 					if (state_exists(state_slot)) {
+--						text_surface = TTF_RenderText_Blended(menu_info_font, "Used", text_color);
+-+						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "已使用", text_color);
+- 					} else {
+--						text_surface = TTF_RenderText_Blended(menu_info_font, "Free", text_color);
+-+						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "未使用", text_color);
+- 					}
+- 				}
+- 			}
+-@@ -734,26 +734,26 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- #ifdef HAS_MENU_LOAD
+- 		case MENU_TYPE_LOAD:
+- 			/// ---- Write slot -----
+--			sprintf(text_tmp, "FROM SLOT   < %d >", state_slot+1);
+--			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+			sprintf(text_tmp, "位置   < %d >", state_slot+1);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 
+- 			if(menu_action){
+--				sprintf(text_tmp, "Loading...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "加载中...");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			}
+- 			else{
+- 				if(menu_confirmation){
+--					sprintf(text_tmp, "Are you sure?");
+--					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+					sprintf(text_tmp, "确定吗?");
+-+					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				}
+- 				else{
+- 					if (state_exists(state_slot)) {
+--						text_surface = TTF_RenderText_Blended(menu_info_font, "Used", text_color);
+-+						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "已使用", text_color);
+- 					} else {
+--						text_surface = TTF_RenderText_Blended(menu_info_font, "Free", text_color);
+-+						text_surface = TTF_RenderUTF8_Blended(menu_info_font, "未使用", text_color);
+- 					}
+- 				}
+- 			}
+-@@ -765,7 +765,7 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- #ifdef HAS_MENU_ASPECT_RATIO
+- 		case MENU_TYPE_ASPECT_RATIO:
+- 			sprintf(text_tmp, "<   %s   >", aspect_ratio_name[menu_aspect_ratio]);
+--			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + padding_y_from_center_menu_zone;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -775,21 +775,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- 		case MENU_TYPE_USB:
+- 			/// ---- Write slot -----
+- 			sprintf(text_tmp, "%s USB", usb_sharing?"EJECT":"MOUNT");
+--			text_surface = TTF_RenderText_Blended(menu_title_font, text_tmp, text_color);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_title_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 
+- 			if(menu_action){
+- 				sprintf(text_tmp, "in progress ...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 			}
+- 			else if(menu_confirmation){
+--				sprintf(text_tmp, "Are you sure?");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "确定吗?");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -811,21 +811,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- 			}
+- 			sprintf(text_tmp, "< %s%s >", curLayoutName, dots?"...":"" );
+- 
+--			text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 
+- 			if(menu_action){
+- 				sprintf(text_tmp, "In progress...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 			}
+- 			else if(menu_confirmation){
+--				sprintf(text_tmp, "Are you sure?");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "确定吗?");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -836,14 +836,14 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- 		case MENU_TYPE_LAUNCHER:
+- 			if(menu_action){
+- 				sprintf(text_tmp, "In progress...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 			}
+- 			else if(menu_confirmation){
+--				sprintf(text_tmp, "Are you sure?");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "确定吗?");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -859,15 +859,15 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- #if defined(HAS_MENU_EXIT) || defined(HAS_MENU_POWERDOWN)
+- 			if(menu_action){
+- 				sprintf(text_tmp, "Shutting down...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 			}
+- 			else{
+- 				if(menu_confirmation){
+--					sprintf(text_tmp, "Are you sure?");
+--					text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+					sprintf(text_tmp, "确定吗?");
+-+					text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 					text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 					text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 					SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -878,21 +878,21 @@ static void menu_screen_refresh(SDL_Surface *screen, int menuItem, int prevItem,
+- #ifdef HAS_MENU_RO_RW
+- 		case MENU_TYPE_RO_RW:
+- 			sprintf(text_tmp, "%s", read_write?"READ-ONLY":"READ-WRITE");
+--			text_surface = TTF_RenderText_Blended(menu_title_font, text_tmp, text_color);
+-+			text_surface = TTF_RenderUTF8_Blended(menu_title_font, text_tmp, text_color);
+- 			text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 			text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+- 			SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 
+- 			if(menu_action){
+- 				sprintf(text_tmp, "in progress ...");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+- 			}
+- 			else if(menu_confirmation){
+--				sprintf(text_tmp, "Are you sure?");
+--				text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+				sprintf(text_tmp, "确定吗?");
+-+				text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+- 				text_pos.x = (screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+- 				text_pos.y = screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+- 				SDL_BlitSurface(text_surface, NULL, screen, &text_pos);
+-@@ -1655,15 +1655,16 @@ int FK_RunResumeMenu(SDL_Surface *hw_screen)
+-             }
+- 
+-             /* Draw resume or reset option */
+--            text_surface = TTF_RenderText_Blended(menu_title_font, resume_options_str[option_idx], text_color);
+-+            text_surface = TTF_RenderUTF8_Blended(menu_title_font, resume_options_str[option_idx], text_color);
+-             text_pos.x = (hw_screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-             text_pos.y = hw_screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2;
+-             SDL_BlitSurface(text_surface, NULL, hw_screen, &text_pos);
+- 
+-             /* Draw confirmation */
+-             if(menu_confirmation){
+--                sprintf(text_tmp, "Are you sure ?");
+--                text_surface = TTF_RenderText_Blended(menu_info_font, text_tmp, text_color);
+-+                //sprintf(text_tmp, "Are you sure ?");
+-+				sprintf(text_tmp, "确定吗 ?");
+-+                text_surface = TTF_RenderUTF8_Blended(menu_info_font, text_tmp, text_color);
+-                 text_pos.x = (hw_screen->w - MENU_ZONE_WIDTH)/2 + (MENU_ZONE_WIDTH - text_surface->w)/2;
+-                 text_pos.y = hw_screen->h - MENU_ZONE_HEIGHT/2 - text_surface->h/2 + 2*padding_y_from_center_menu_zone;
+-                 SDL_BlitSurface(text_surface, NULL, hw_screen, &text_pos);
+-@@ -1689,4 +1690,4 @@ int FK_RunResumeMenu(SDL_Surface *hw_screen)
+-     }
+- 
+-     return option_idx;
+--}
+-+}
+-\ No newline at end of file
+-diff --git a/funkey/fk_menu.h b/funkey/fk_menu.h
+-index 8b9e7a4..0f64c5e 100644
+---- a/funkey/fk_menu.h
+-+++ b/funkey/fk_menu.h
+-@@ -95,8 +95,8 @@ typedef enum {ASPECT_RATIOS} ENUM_ASPECT_RATIOS_TYPES;
+- 
+- ///------ Definition of the different resume options
+- #define RESUME_OPTIONS \
+--    X(RESUME_YES, "RESUME GAME") \
+--    X(RESUME_NO, "NEW GAME") \
+-+    X(RESUME_YES, "继续游戏") \
+-+    X(RESUME_NO, "新游戏") \
+-     X(NB_RESUME_OPTIONS, "")
+- 
+- ////------ Enumeration of the different resume options ------
+-diff --git a/main.c b/main.c
+-index 1408a46..6c4def3 100644
+---- a/main.c
+-+++ b/main.c
+-@@ -105,6 +105,21 @@ static int screenshot_file_name(char *name, size_t len) {
+- 	return -1;
+- }
+- 
+-+static void showload(void)
+-+{
+-+    SDL_Surface *img_loading = IMG_Load("/usr/games/menu_resources/loading.png");
+-+    if(!img_loading) {
+-+        printf("ERROR IMG_Load: %s\n", IMG_GetError());
+-+    }
+-+	SDL_Surface *screen = SDL_GetVideoSurface();
+-+	SDL_Rect pos_arrow_bottom;
+-+	pos_arrow_bottom.x = (screen->w - img_loading->w) / 2;
+-+	pos_arrow_bottom.y = (screen->h - img_loading->h) / 2;
+-+	SDL_BlitSurface(img_loading, NULL, screen, &pos_arrow_bottom);
+-+	SDL_Flip(screen);
+-+	SDL_FreeSurface(img_loading);
+-+}
+-+
+- static int png_write_rgb565(const uint16_t *buf, png_structp png_ptr, int w, int h) {
+- 	png_byte *row_pointer = calloc(w * 3, sizeof(png_byte));
+- 	int ret = -1;
+-@@ -211,7 +226,7 @@ void set_defaults(void)
+- 	enable_audio = 1;
+- 	enable_drc = 1;
+- 	audio_buffer_size = 5;
+--	scale_size = SCALE_SIZE_NONE;
+-+	scale_size = SCALE_SIZE_FULL;//SCALE_SIZE_NONE;
+- 	scale_filter = SCALE_FILTER_NEAREST;
+- 
+- 	/* Sets better defaults for small screen */
+-@@ -620,7 +635,7 @@ int main(int argc, char **argv) {
+- 	if (plat_init()) {
+- 		quit(-1);
+- 	}
+--
+-+	showload();
+- 	if (menu_init()) {
+- 		quit(-1);
+- 	}
+-diff --git a/scale.c b/scale.c
+-index 5857589..842e4ae 100644
+---- a/scale.c
+-+++ b/scale.c
+-@@ -186,19 +186,7 @@ static void scale_blend(unsigned w, unsigned h, size_t pitch, const void *src, v
+- 			if (!lines)
+- 				pnext -= (pitch / sizeof(uint16_t));
+- 
+--			if (dy <= bh[0] && dy + rat_h > (rat_dst_h + rat_dst_h - bh[0])) {
+--				/* Will miss next line, blend in instead */
+--				const uint32_t *src32 = (const uint32_t *)src;
+--				const uint32_t *pnext32 = (const uint32_t *)pnext;
+--				uint32_t *pblend32 = (uint32_t *)pblend;
+--				int count = w / 2;
+--
+--				while(count--) {
+--					*pblend32++ = AVERAGE32(*src32, *pnext32);
+--					src32++;
+--					pnext32++;
+--				}
+--			} else if (dy > rat_dst_h - bh[0]) {
+-+			if (dy > rat_dst_h - bh[0]) {
+- 				pblend = pnext;
+- 			} else if (dy <= bh[0]) {
+- 				/* Drops const, won't get touched later though */
+-@@ -239,17 +227,15 @@ static void scale_blend(unsigned w, unsigned h, size_t pitch, const void *src, v
+- 				while (dx < rat_dst_w) {
+- 					if (a == b) {
+- 						out = a;
+--					} else if (dx <= bw[0] && dx + rat_w > (rat_dst_w + rat_dst_w - bw[0])) {
+--						out = AVERAGE16_NOCHK(a, b); // will miss next pixel, blend in instead
+- 					} else if (dx > rat_dst_w - bw[0]) { // top quintile, bbbb
+- 						out = b;
+- 					} else if (dx <= bw[0]) { // last quintile, aaaa
+- 						out = a;
+- 					} else {
+- 						if (dx > rat_dst_w - bw[1]) { // 2nd quintile, abbb
+--							a = AVERAGE16_NOCHK(a, b);
+-+							a = AVERAGE16_NOCHK(a,b);
+- 						} else if (dx <= bw[1]) { // 4th quintile, aaab
+--							b = AVERAGE16_NOCHK(a, b);
+-+							b = AVERAGE16_NOCHK(a,b);
+- 						}
+- 
+- 						out = AVERAGE16_NOCHK(a, b); // also 3rd quintile, aabb
+-diff --git a/scale.h b/scale.h
+-index fe02d92..c2f8003 100644
+---- a/scale.h
+-+++ b/scale.h
+-@@ -1,11 +1,12 @@
+- #ifndef __SCALE_H__
+- #define __SCALE_H__
+- 
+--#ifdef FUNKEY_S
+--#define SCREEN_WIDTH 240
+--#else
+--#define SCREEN_WIDTH 320
+--#endif
+-+#define SCREEN_WIDTH 1080
+-+// #ifdef FUNKEY_S
+-+// #define SCREEN_WIDTH 240
+-+// #else
+-+// #define SCREEN_WIDTH 320
+-+// #endif
+- 
+- #if SCREEN_WIDTH == 240
+- #define HUD_LEN 31
+-@@ -13,7 +14,7 @@
+- #define HUD_LEN 41
+- #endif
+- 
+--#define SCREEN_HEIGHT 240
+-+#define SCREEN_HEIGHT 1240
+- #define SCREEN_BPP 2
+- #define SCREEN_PITCH (SCREEN_BPP * SCREEN_WIDTH)
+- 
+--- 
+-2.25.1
+-
+diff --git a/libpicofe/in_sdl.c b/libpicofe/in_sdl.c
+index bb0163c..c516ae1 100644
+--- a/libpicofe/in_sdl.c
++++ b/libpicofe/in_sdl.c
+@@ -19,14 +19,25 @@
+ typedef unsigned long keybits_t;
+ #define KEYBITS_WORD_BITS (sizeof(keybits_t) * 8)
+ 
++enum mod_state {
++	MOD_NO,
++	MOD_MAYBE,
++	MOD_YES
++};
++
+ struct in_sdl_state {
+ 	const in_drv_t *drv;
+ 	SDL_Joystick *joy;
+ 	int joy_id;
+ 	int axis_keydown[2];
++	int hat_state;  /* Track hat (D-pad) state */
++	enum mod_state mod_state;
++	int allow_unbound_mods;
++	char *mods_bound;
+ 	keybits_t keystate[SDLK_LAST / KEYBITS_WORD_BITS + 1];
+ 	// emulator keys should always be processed immediately lest one is lost
+ 	keybits_t emu_keys[SDLK_LAST / KEYBITS_WORD_BITS + 1];
++	short delayed_key;
+ };
+ 
+ static void (*ext_event_handler)(void *event);
+@@ -184,6 +195,11 @@ static void in_sdl_probe(const in_drv_t *drv)
+ 	}
+ 
+ 	state->drv = drv;
++
++	if (pdata->mod_key) {
++		state->mods_bound = calloc(pdata->modmap_size, sizeof(char));
++	}
++
+ 	in_register(IN_SDL_PREFIX "keys", -1, state, SDLK_LAST,
+ 		key_names, 0);
+ 
+@@ -220,6 +236,11 @@ static void in_sdl_free(void *drv_data)
+ 	if (state != NULL) {
+ 		if (state->joy != NULL)
+ 			SDL_JoystickClose(state->joy);
++
++		if (state->mods_bound != NULL) {
++			free(state->mods_bound);
++		}
++
+ 		free(state);
+ 	}
+ }
+@@ -259,6 +280,176 @@ static int get_keystate(keybits_t *keystate, int sym)
+ 	return !!(*ks_word & mask);
+ }
+ 
++static inline void switch_key(SDL_Event *event, keybits_t *keystate, short upkey, short downkey)
++{
++	event->type = SDL_KEYUP;
++	event->key.state = SDL_RELEASED;
++	event->key.keysym.sym = upkey;
++
++	update_keystate(keystate, upkey, 0);
++	SDL_PushEvent(event);
++
++	event->type = SDL_KEYDOWN;
++	event->key.state = SDL_PRESSED;
++	event->key.keysym.sym = downkey;
++
++	update_keystate(keystate, downkey, 1);
++	SDL_PushEvent(event);
++}
++
++static void translate_combo_event(struct in_sdl_state *state, SDL_Event *event, keybits_t *keystate)
++{
++	const struct in_pdata *pdata = state->drv->pdata;
++	const struct mod_keymap *map;
++	short key = (short)event->key.keysym.sym;
++	uint8_t type  = event->type;
++	short mod_key = pdata->mod_key;
++	int i;
++
++	if (event->type != SDL_KEYDOWN && event->type != SDL_KEYUP) {
++		SDL_PushEvent(event);
++		return;
++	}
++
++	if (state->mod_state == MOD_NO && key != mod_key) {
++		update_keystate(keystate, event->key.keysym.sym, event->type == SDL_KEYDOWN);
++		SDL_PushEvent(event);
++		return;
++	}
++
++	if (key == mod_key) {
++		switch (state->mod_state) {
++		case MOD_NO:
++			if (type == SDL_KEYDOWN) {
++				/* Pressed mod, maybe a combo? Ignore the keypress
++				 * until it's determined */
++				state->mod_state = MOD_MAYBE;
++
++				for (i = 0; i < pdata->modmap_size; i++) {
++					map = &pdata->mod_keymap[i];
++
++					if (get_keystate(keystate, map->inkey) &&
++					    (state->allow_unbound_mods ||
++					     (state->mods_bound && state->mods_bound[i]))) {
++						state->mod_state = MOD_YES;
++						switch_key(event, keystate, map->inkey, map->outkey);
++					}
++				}
++			} else {
++				SDL_PushEvent(event);
++			}
++			break;
++		case MOD_MAYBE:
++			if (type == SDL_KEYDOWN) {
++				SDL_PushEvent(event);
++			} else {
++				/* Released mod without combo, simulate down and up */
++				state->mod_state = MOD_NO;
++
++				event->type = SDL_KEYDOWN;
++				event->key.state = SDL_PRESSED;
++				SDL_PushEvent(event);
++
++				if (get_keystate(state->emu_keys, mod_key)) {
++					/* emu keys handled immediately, no need to delay */
++					event->type = SDL_KEYUP;
++					event->key.state = SDL_RELEASED;
++					SDL_PushEvent(event);
++				} else {
++					/* Delay keyup to force handling */
++					state->delayed_key = event->key.keysym.sym;
++				}
++			}
++			break;
++		case MOD_YES:
++			if (type == SDL_KEYDOWN) {
++				SDL_PushEvent(event);
++			} else {
++				/* Released mod, switch all mod keys to unmod and ignore mod press */
++				state->mod_state = MOD_NO;
++
++				for (i = 0; i < pdata->modmap_size; i++) {
++					map = &pdata->mod_keymap[i];
++
++					if (get_keystate(keystate, map->outkey)) {
++						switch_key(event, keystate, map->outkey, map->inkey);
++					}
++				}
++			}
++			break;
++		default:
++			SDL_PushEvent(event);
++			break;
++		}
++	} else {
++		int found = 0;
++		for (i = 0; i < pdata->modmap_size; i++) {
++			map = &pdata->mod_keymap[i];
++
++			if (map->inkey == key &&
++			    (state->allow_unbound_mods ||
++			     (state->mods_bound && state->mods_bound[i]))) {
++				state->mod_state = MOD_YES;
++
++				event->key.keysym.sym = map->outkey;
++				update_keystate(keystate, map->outkey, event->type == SDL_KEYDOWN);
++				SDL_PushEvent(event);
++				found = 1;
++			}
++		}
++
++		if (!found)
++			SDL_PushEvent(event);
++	}
++}
++
++static void translate_combo_events(struct in_sdl_state *state, Uint32 mask)
++{
++	const struct in_pdata *pdata = state->drv->pdata;
++	SDL_Event events[10]; /* Must be bigger than events size in collect_events */
++	SDL_Event delayed_event = {0};
++	keybits_t keystate[SDLK_LAST / KEYBITS_WORD_BITS + 1];
++	int count;
++	int has_events;
++	int i;
++
++	if (!pdata->mod_key)
++		return;
++
++	if (state->delayed_key != 0) {
++		delayed_event.type = SDL_KEYUP;
++		delayed_event.key.state = SDL_RELEASED;
++		delayed_event.key.keysym.sym = state->delayed_key;
++		SDL_PushEvent(&delayed_event);
++		state->delayed_key = 0;
++	}
++
++	if (!state->allow_unbound_mods && state->mods_bound) {
++		int bound = 0;
++		for (i = 0; i < pdata->modmap_size; i++) {
++			bound = state->mods_bound[i];
++			if (bound)
++				break;
++		}
++
++		if (!bound)
++			return;
++	}
++
++	has_events = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, mask);
++
++	if (!has_events)
++		return;
++
++	memcpy(keystate, state->keystate, sizeof(keystate));
++
++	count = SDL_PeepEvents(events, (sizeof(events) / sizeof(events[0])), SDL_GETEVENT, mask);
++
++	for (i = 0; i < count; i++) {
++		translate_combo_event(state, &events[i], keystate);
++	}
++}
++
+ static int handle_event(struct in_sdl_state *state, SDL_Event *event,
+ 	int *kc_out, int *down_out, int *emu_out)
+ {
+@@ -330,6 +521,82 @@ static int handle_joy_event(struct in_sdl_state *state, SDL_Event *event,
+ 		down = event->jbutton.state == SDL_PRESSED;
+ 		ret = 1;
+ 		break;
++
++	case SDL_JOYHATMOTION:
++		if (event->jhat.which != state->joy_id)
++			return -2;
++		{
++			int hat_value = event->jhat.value;
++			int old_hat = state->hat_state;
++			int new_hat = hat_value;
++
++			/* Store current hat state */
++			state->hat_state = hat_value;
++
++			/* Handle all 4 directions - update keystate directly for all changes */
++			/* UP */
++			if ((new_hat & SDL_HAT_UP) && !(old_hat & SDL_HAT_UP)) {
++				update_keystate(state->keystate, SDLK_u, 1);
++				kc = SDLK_u;
++				down = 1;
++				ret = 1;
++			} else if (!(new_hat & SDL_HAT_UP) && (old_hat & SDL_HAT_UP)) {
++				update_keystate(state->keystate, SDLK_u, 0);
++				kc = SDLK_u;
++				down = 0;
++				ret = 1;
++			}
++			/* DOWN */
++			if ((new_hat & SDL_HAT_DOWN) && !(old_hat & SDL_HAT_DOWN)) {
++				update_keystate(state->keystate, SDLK_d, 1);
++				if (!ret) {
++					kc = SDLK_d;
++					down = 1;
++					ret = 1;
++				}
++			} else if (!(new_hat & SDL_HAT_DOWN) && (old_hat & SDL_HAT_DOWN)) {
++				update_keystate(state->keystate, SDLK_d, 0);
++				if (!ret) {
++					kc = SDLK_d;
++					down = 0;
++					ret = 1;
++				}
++			}
++			/* LEFT */
++			if ((new_hat & SDL_HAT_LEFT) && !(old_hat & SDL_HAT_LEFT)) {
++				update_keystate(state->keystate, SDLK_l, 1);
++				if (!ret) {
++					kc = SDLK_l;
++					down = 1;
++					ret = 1;
++				}
++			} else if (!(new_hat & SDL_HAT_LEFT) && (old_hat & SDL_HAT_LEFT)) {
++				update_keystate(state->keystate, SDLK_l, 0);
++				if (!ret) {
++					kc = SDLK_l;
++					down = 0;
++					ret = 1;
++				}
++			}
++			/* RIGHT */
++			if ((new_hat & SDL_HAT_RIGHT) && !(old_hat & SDL_HAT_RIGHT)) {
++				update_keystate(state->keystate, SDLK_r, 1);
++				if (!ret) {
++					kc = SDLK_r;
++					down = 1;
++					ret = 1;
++				}
++			} else if (!(new_hat & SDL_HAT_RIGHT) && (old_hat & SDL_HAT_RIGHT)) {
++				update_keystate(state->keystate, SDLK_r, 0);
++				if (!ret) {
++					kc = SDLK_r;
++					down = 0;
++					ret = 1;
++				}
++			}
++		}
++		break;
++
+ 	default:
+ 		return -1;
+ 	}
+@@ -364,6 +631,9 @@ static int collect_events(struct in_sdl_state *state, int *one_kc, int *one_down
+ 
+ 	SDL_PumpEvents();
+ 
++	if (!state->joy)
++		translate_combo_events(state, mask);
++
+ 	num_events = SDL_PeepEvents(NULL, 0, SDL_PEEKEVENT, mask);
+ 
+ 	for (num_peeped_events = 0; num_peeped_events < num_events; num_peeped_events += count) {
+@@ -407,12 +677,34 @@ out:
+ 	return retval;
+ }
+ 
++static void update_modifier_binds(struct in_sdl_state *state, const int *binds)
++{
++	int i, b;
++	const struct in_pdata *pdata = state->drv->pdata;
++	const struct mod_keymap *map;
++
++	for (i = 0; i < pdata->modmap_size; i++) {
++		map = &pdata->mod_keymap[i];
++
++		for (b = 0; b < IN_BINDTYPE_COUNT; b++) {
++			state->mods_bound[i] = 0;
++			if (binds[IN_BIND_OFFS(map->outkey, b)]) {
++				state->mods_bound[i] = 1;
++				break;
++			}
++		}
++	}
++}
++
+ static int in_sdl_update(void *drv_data, const int *binds, int *result)
+ {
+ 	struct in_sdl_state *state = drv_data;
+ 	keybits_t mask;
+ 	int i, sym, bit, b;
+ 
++	if (state->mods_bound)
++		update_modifier_binds(state, binds);
++
+ 	collect_events(state, NULL, NULL);
+ 
+ 	for (i = 0; i < SDLK_LAST / KEYBITS_WORD_BITS + 1; i++) {
+@@ -511,6 +803,35 @@ static int in_sdl_clean_binds(void *drv_data, int *binds, int *def_finds)
+ 	return cnt;
+ }
+ 
++static int in_sdl_get_config(void *drv_data, int what, int *val)
++{
++	struct in_sdl_state *state = drv_data;
++
++	switch (what) {
++	case IN_CFG_ALLOW_UNBOUND_MOD_KEYS:
++		*val = state->allow_unbound_mods;
++		break;
++	default:
++		return -1;
++	}
++
++	return 0;
++}
++
++static int in_sdl_set_config(void *drv_data, int what, int val)
++{
++	struct in_sdl_state *state = drv_data;
++
++	switch (what) {
++	case IN_CFG_ALLOW_UNBOUND_MOD_KEYS:
++		state->allow_unbound_mods = val;
++	default:
++		return -1;
++	}
++
++	return 0;
++}
++
+ static const in_drv_t in_sdl_drv = {
+ 	.prefix         = IN_SDL_PREFIX,
+ 	.probe          = in_sdl_probe,
+@@ -520,6 +841,8 @@ static const in_drv_t in_sdl_drv = {
+ 	.update_keycode = in_sdl_update_keycode,
+ 	.menu_translate = in_sdl_menu_translate,
+ 	.clean_binds    = in_sdl_clean_binds,
++	.get_config     = in_sdl_get_config,
++	.set_config     = in_sdl_set_config,
+ };
+ 
+ int in_sdl_init(const struct in_pdata *pdata, void (*handler)(void *event))
+diff --git a/libpicofe/input.h b/libpicofe/input.h
+index 360b65b..f95ddf0 100644
+--- a/libpicofe/input.h
++++ b/libpicofe/input.h
+@@ -59,6 +59,7 @@
+ enum {
+ 	IN_CFG_BIND_COUNT = 0,
+ 	IN_CFG_DOES_COMBOS,
++	IN_CFG_ALLOW_UNBOUND_MOD_KEYS,
+ 	IN_CFG_BLOCKING,
+ 	IN_CFG_KEY_NAMES,
+ 	IN_CFG_ABS_DEAD_ZONE,	/* dead zone for analog-digital mapping */
+@@ -110,6 +111,11 @@ struct menu_keymap {
+ 	short pbtn;
+ };
+ 
++struct mod_keymap {
++	short inkey;
++	short outkey;
++};
++
+ struct in_pdata {
+ 	const struct in_default_bind *defbinds;
+ 	const struct menu_keymap *key_map;
+@@ -117,6 +123,9 @@ struct in_pdata {
+ 	const struct menu_keymap *joy_map;
+ 	size_t jmap_size;
+ 	const char * const *key_names;
++	short mod_key;
++	const struct mod_keymap *mod_keymap;
++	size_t modmap_size;
+ };
+ 
+ /* to be called by drivers */
+diff --git a/libpicofe/menu.c b/libpicofe/menu.c
+index e91f84a..5c81a5f 100644
+--- a/libpicofe/menu.c
++++ b/libpicofe/menu.c
+@@ -1455,6 +1455,7 @@ static void key_config_loop(const me_bind_action *opts, int opt_cnt, int player_
+ 	int i, sel = 0, menu_sel_max = opt_cnt - 1, does_combos = 0;
+ 	int dev_id, bind_dev_id, dev_count, kc, is_down, mkey;
+ 	int unbind, bindtype, mask_shift;
++	int allow_unbound_mods[IN_MAX_DEVS] = {0};
+ 
+ 	for (i = 0, dev_id = -1, dev_count = 0; i < IN_MAX_DEVS; i++) {
+ 		if (in_get_dev_name(i, 1, 0) != NULL) {
+@@ -1475,6 +1476,12 @@ static void key_config_loop(const me_bind_action *opts, int opt_cnt, int player_
+ 		mask_shift = 16;
+ 	bindtype = player_idx >= 0 ? IN_BINDTYPE_PLAYER12 : IN_BINDTYPE_EMU;
+ 
++	for (i = 0; i < IN_MAX_DEVS; i++)
++	{
++		in_get_config(i, IN_CFG_ALLOW_UNBOUND_MOD_KEYS, &allow_unbound_mods[i]);
++		in_set_config_int(i, IN_CFG_ALLOW_UNBOUND_MOD_KEYS, 1);
++	}
++
+ 	for (;;)
+ 	{
+ 		draw_key_config(opts, opt_cnt, player_idx, sel, dev_id, dev_count, 0);
+@@ -1500,10 +1507,10 @@ static void key_config_loop(const me_bind_action *opts, int opt_cnt, int player_
+ 				}
+ 				continue;
+ 			case PBTN_MBACK:
+-				return;
++				goto finish;
+ 			case PBTN_MOK:
+ 				if (sel >= opt_cnt)
+-					return;
++					goto finish;
+ 				while (in_menu_wait_any(NULL, 30) & PBTN_MOK)
+ 					;
+ 				break;
+@@ -1536,5 +1543,11 @@ static void key_config_loop(const me_bind_action *opts, int opt_cnt, int player_
+ 		if (dev_id != -1)
+ 			dev_id = bind_dev_id;
+ 	}
++
++finish:
++	for (i = 0; i < IN_MAX_DEVS; i++)
++	{
++		in_set_config_int(i, IN_CFG_ALLOW_UNBOUND_MOD_KEYS, allow_unbound_mods[i]);
++	}
+ }
+ 
+-- 
+2.34.1
+

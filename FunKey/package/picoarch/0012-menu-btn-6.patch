@@ -1,0 +1,59 @@
+From dbfd168f922d6a281f0a0defb8085960e1e322e5 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 17:17:34 +0800
+Subject: [PATCH] menu-btn-6
+
+---
+ libpicofe/input.c | 4 +++-
+ plat_funkey.c     | 6 +++---
+ 2 files changed, 6 insertions(+), 4 deletions(-)
+
+diff --git a/libpicofe/input.c b/libpicofe/input.c
+index bc10a40..50825fa 100644
+--- a/libpicofe/input.c
++++ b/libpicofe/input.c
+@@ -63,7 +63,9 @@ static int *in_alloc_binds(int drv_id, int key_count)
+ 	binds_d = binds + key_count * IN_BINDTYPE_COUNT;
+ 
+ 	defbinds = DRV(drv_id).defbinds;
+-	printf("DEBUG in_alloc_binds: drv_id=%d, defbinds=%p, key_count=%d\n",
++	fprintf(stderr, "DEBUG: SDLK_WORLD_0=%d SDLK_WORLD_10=%d SDLK_q=%d\n",
++		SDLK_WORLD_0, SDLK_WORLD_10, SDLK_q);
++	fprintf(stderr, "DEBUG in_alloc_binds: drv_id=%d, defbinds=%p, key_count=%d\n",
+ 		drv_id, (void*)defbinds, key_count);
+ 	if (defbinds != NULL) {
+ 		for (i = 0; ; i++) {
+diff --git a/plat_funkey.c b/plat_funkey.c
+index ff32dc1..9ed7f09 100644
+--- a/plat_funkey.c
++++ b/plat_funkey.c
+@@ -32,7 +32,7 @@ static const struct in_default_bind in_sdl_defbinds[] = {
+ 	{ SDLK_WORLD_6, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_L2 },   /* button 6 = L2 */
+ 	{ SDLK_WORLD_5, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_R },    /* button 5 = R1 */
+ 	{ SDLK_WORLD_7, IN_BINDTYPE_PLAYER12, RETRO_DEVICE_ID_JOYPAD_R2 },   /* button 7 = R2 */
+-	{ SDLK_WORLD_10, IN_BINDTYPE_EMU, EACTION_MENU },                    /* button 10 = HOME/MENU */
++	{ 170, IN_BINDTYPE_EMU, EACTION_MENU },                    /* button 10 = HOME/MENU */
+ 	{ SDLK_q, IN_BINDTYPE_EMU, EACTION_MENU },
+ 	{ SDLK_h, IN_BINDTYPE_EMU, EACTION_NEXT_SCALER },
+ 	{ SDLK_j, IN_BINDTYPE_EMU, EACTION_PREVIOUS_ZOOM_STEP },
+@@ -63,7 +63,7 @@ const struct menu_keymap in_sdl_joy_map[] =
+ 	{ SDLK_r, PBTN_RIGHT },
+ 	/* joystick menu bindings - T113BOY PMHID Joystick */
+ 	{ SDLK_WORLD_1, PBTN_MOK },        /* button 1 = A = OK */
+-	{ SDLK_WORLD_10, PBTN_MBACK },     /* button 10 = HOME = BACK */
++	{ 170, PBTN_MBACK },     /* button 10 = HOME = BACK */
+ 	{ SDLK_WORLD_9, PBTN_MA2 },        /* button 9 = START */
+ 	{ SDLK_WORLD_8, PBTN_MA3 },        /* button 8 = SELECT */
+ 	{ SDLK_WORLD_4, PBTN_MENU },       /* button 4 = L1 = MENU */
+@@ -107,7 +107,7 @@ static const char * const in_sdl_key_names[SDLK_LAST] = {
+ 	[SDLK_WORLD_7]   = "R2",
+ 	[SDLK_WORLD_8]   = "SELECT",
+ 	[SDLK_WORLD_9]   = "START",
+-	[SDLK_WORLD_10]  = "HOME",
++	[170]  = "HOME",
+ };
+ 
+ static const struct mod_keymap in_sdl_mod_keymap[] = {
+-- 
+2.34.1
+

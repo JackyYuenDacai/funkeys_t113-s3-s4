@@ -1,0 +1,24 @@
+From 4a6380fa9488bd5540b26843383f5b5c461e89d7 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 16:37:26 +0800
+Subject: [PATCH] menu-btn-1
+
+---
+ core.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/core.c b/core.c
+index 2a1cf5b..050f06b 100644
+--- a/core.c
++++ b/core.c
+@@ -618,6 +618,7 @@ static void pa_input_poll(void) {
+ 
+ 	in_update(actions);
+ 	emu_act = actions[IN_BINDTYPE_EMU];
++	printf("DEBUG pa_input_poll: actions[IN_BINDTYPE_EMU]=%u, emu_act=%u\n", actions[IN_BINDTYPE_EMU], emu_act);
+ 	if (emu_act) {
+ 		for (; !(emu_act & 1); emu_act >>= 1, which++)
+ 			;
+-- 
+2.34.1
+

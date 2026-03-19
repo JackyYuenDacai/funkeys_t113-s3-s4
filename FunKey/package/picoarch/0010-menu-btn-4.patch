@@ -1,0 +1,48 @@
+From 1a48c13d09b8777f45a5b061c97ee16838ba40ba Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 16:56:07 +0800
+Subject: [PATCH] menu-btn-4
+
+---
+ libpicofe/in_sdl.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/libpicofe/in_sdl.c b/libpicofe/in_sdl.c
+index bce5846..513cf0a 100644
+--- a/libpicofe/in_sdl.c
++++ b/libpicofe/in_sdl.c
+@@ -207,8 +207,11 @@ static void in_sdl_probe(const in_drv_t *drv)
+ 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+ 
+ 	joycount = SDL_NumJoysticks();
++	printf("DEBUG in_sdl_probe: SDL_NumJoysticks() = %d\n", joycount);
+ 	for (i = 0; i < joycount; i++) {
+ 		joy = SDL_JoystickOpen(i);
++		printf("DEBUG in_sdl_probe: SDL_JoystickOpen(%d) = %p, name=%s\n",
++			i, (void*)joy, joy ? SDL_JoystickName(i) : "NULL");
+ 		if (joy == NULL)
+ 			continue;
+ 
+@@ -516,7 +519,10 @@ static int handle_joy_event(struct in_sdl_state *state, SDL_Event *event,
+ 	case SDL_JOYBUTTONUP:
+ 		if (event->jbutton.which != state->joy_id)
+ 			return -2;
++		printf("DEBUG handle_joy_event: SDL_JOYBUTTON%s, button=%u\n",
++			event->type == SDL_JOYBUTTONDOWN ? "DOWN" : "UP", event->jbutton.button);
+ 		kc = (int)event->jbutton.button + SDLK_WORLD_0;
++		printf("DEBUG handle_joy_event: kc=%d (SDLK_WORLD_0=%d)\n", kc, SDLK_WORLD_0);
+ 		down = event->jbutton.state == SDL_PRESSED;
+ 		ret = 1;
+ 		break;
+@@ -704,6 +710,8 @@ static int in_sdl_update(void *drv_data, const int *binds, int *result)
+ 	if (state->mods_bound)
+ 		update_modifier_binds(state, binds);
+ 
++	printf("DEBUG in_sdl_update: dev=%s, joy=%p, joy_id=%d\n",
++		state->drv->prefix, (void*)state->joy, state->joy_id);
+ 	collect_events(state, NULL, NULL);
+ 
+ 	printf("DEBUG in_sdl_update: state->keystate[304/64=%d] = 0x%lx\n", 304/64, state->keystate[304/64]);
+-- 
+2.34.1
+

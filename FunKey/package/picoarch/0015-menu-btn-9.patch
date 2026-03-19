@@ -1,0 +1,36 @@
+From 880a42f0d67e7ad81f50c046fb175ae7b18541b3 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 17:45:52 +0800
+Subject: [PATCH] menu-btn-9
+
+---
+ funkey/fk_menu.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+index 585a5e3..343cc89 100644
+--- a/funkey/fk_menu.c
++++ b/funkey/fk_menu.c
+@@ -1444,7 +1444,9 @@ int FK_RunMenu(SDL_Surface *screen)
+ 
+ 				/// -------- Handle Joystick Button Events (convert to keyboard) --------
+ 				case SDL_JOYBUTTONDOWN:
++					
+ 					{
++						MENU_DEBUG_PRINTF("Joystick button down: %d\n", event.jbutton.button);
+ 						int sym = -1;
+ 						switch (event.jbutton.button) {
+ 						case 1:  sym = SDLK_a;      break; /* A = OK/confirm */
+@@ -1463,7 +1465,9 @@ int FK_RunMenu(SDL_Surface *screen)
+ 
+ 				/// -------- Handle Joystick Hat (D-pad) Events --------
+ 				case SDL_JOYHATMOTION:
++					
+ 					{
++						MENU_DEBUG_PRINTF("Joystick hat motion: %d\n", event.jhat.value);
+ 						int hat = event.jhat.value;
+ 						int sym = -1;
+ 						if      (hat & SDL_HAT_UP)    sym = SDLK_UP;
+-- 
+2.34.1
+

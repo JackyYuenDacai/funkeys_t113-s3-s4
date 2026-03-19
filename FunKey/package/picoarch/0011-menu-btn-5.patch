@@ -1,0 +1,76 @@
+From 368f8f53b288be85b6ab9ef5dd59c62139308bf2 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 17:03:12 +0800
+Subject: [PATCH] menu-btn-5
+
+---
+ libpicofe/in_sdl.c | 12 ++++++------
+ libpicofe/input.c  |  7 ++++++-
+ 2 files changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/libpicofe/in_sdl.c b/libpicofe/in_sdl.c
+index 513cf0a..c20ecc9 100644
+--- a/libpicofe/in_sdl.c
++++ b/libpicofe/in_sdl.c
+@@ -207,11 +207,11 @@ static void in_sdl_probe(const in_drv_t *drv)
+ 	SDL_InitSubSystem(SDL_INIT_JOYSTICK);
+ 
+ 	joycount = SDL_NumJoysticks();
+-	printf("DEBUG in_sdl_probe: SDL_NumJoysticks() = %d\n", joycount);
++	printf("DEBUG: SDL_NumJoysticks()=%d\n", joycount);
+ 	for (i = 0; i < joycount; i++) {
+ 		joy = SDL_JoystickOpen(i);
+-		printf("DEBUG in_sdl_probe: SDL_JoystickOpen(%d) = %p, name=%s\n",
+-			i, (void*)joy, joy ? SDL_JoystickName(i) : "NULL");
++		printf("DEBUG: JoyOpen(%d)=%p name=%s\n",
++			i, (void*)joy, joy ? SDL_JoystickName(i) : "N/A");
+ 		if (joy == NULL)
+ 			continue;
+ 
+@@ -710,12 +710,12 @@ static int in_sdl_update(void *drv_data, const int *binds, int *result)
+ 	if (state->mods_bound)
+ 		update_modifier_binds(state, binds);
+ 
+-	printf("DEBUG in_sdl_update: dev=%s, joy=%p, joy_id=%d\n",
++	printf("DEBUG in_sdl_update: drv->prefix=%s, joy=%p, joy_id=%d\n",
+ 		state->drv->prefix, (void*)state->joy, state->joy_id);
+ 	collect_events(state, NULL, NULL);
+ 
+-	printf("DEBUG in_sdl_update: state->keystate[304/64=%d] = 0x%lx\n", 304/64, state->keystate[304/64]);
+-	printf("DEBUG in_sdl_update: binds[IN_BIND_OFFS(304,0)=%d] = %d\n", 304*2+0, binds[304*2+0]);
++	printf("DEBUG: binds[IN_BIND_OFFS(170,0)=%d] = %d  (sym=170=SDLK_WORLD_10)\n",
++		170*2+0, binds[170*2+0]);
+ 
+ 	for (i = 0; i < SDLK_LAST / KEYBITS_WORD_BITS + 1; i++) {
+ 		mask = state->keystate[i];
+diff --git a/libpicofe/input.c b/libpicofe/input.c
+index aa1f155..bc10a40 100644
+--- a/libpicofe/input.c
++++ b/libpicofe/input.c
+@@ -62,10 +62,13 @@ static int *in_alloc_binds(int drv_id, int key_count)
+ 
+ 	binds_d = binds + key_count * IN_BINDTYPE_COUNT;
+ 
+-	/* always have a copy of defbinds */
+ 	defbinds = DRV(drv_id).defbinds;
++	printf("DEBUG in_alloc_binds: drv_id=%d, defbinds=%p, key_count=%d\n",
++		drv_id, (void*)defbinds, key_count);
+ 	if (defbinds != NULL) {
+ 		for (i = 0; ; i++) {
++			printf("DEBUG in_alloc_binds: [%d] code=%d btype=%d bit=%d\n",
++				i, defbinds[i].code, defbinds[i].btype, defbinds[i].bit);
+ 			if (defbinds[i].code == 0 && defbinds[i].btype == 0
+ 			    && defbinds[i].bit == 0)
+ 				break;
+@@ -75,6 +78,8 @@ static int *in_alloc_binds(int drv_id, int key_count)
+ 		}
+ 	}
+ 
++	printf("DEBUG in_alloc_binds: binds[IN_BIND_OFFS(170,0)=%d] = %d\n",
++		170*2+0, binds_d[170*2+0]);
+ 	return binds;
+ }
+ 
+-- 
+2.34.1
+

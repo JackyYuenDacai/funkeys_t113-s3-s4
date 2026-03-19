@@ -134,7 +134,11 @@
 		pins = "PG11";
 		function = "clk_fanout1";
 	};
-
+	pmhid_int_pin: pmhid_int_pin {
+        pins = "PE8";
+        function = "gpio_in";
+        bias-pull-up;
+    };
 	lvds0_pins_a: lvds0@0 {
 		allwinner,pins  = "PD0", "PD1", "PD2", "PD3", "PD4", "PD5", "PD6", "PD7", "PD8", "PD9";
 		allwinner,pname = "PD0", "PD1", "PD2", "PD3", "PD4", "PD5", "PD6", "PD7", "PD8", "PD9";
@@ -580,7 +584,7 @@
 	sunxi-power-save-mode;
 	max-frequency = <150000000>;
 	ctl-spec-caps = <0x8>;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdc0 {
@@ -630,35 +634,7 @@
 	status = "okay";
 };
 
-// &twi0 {
-// 	clock-frequency = <400000>;
-// 	pinctrl-0 = <&twi0_pins_a>;
-// 	pinctrl-1 = <&twi0_pins_b>;
-// 	pinctrl-names = "default", "sleep";
-// 	twi_drv_used = <0>;
-// 	dmas = <&dma 43>, <&dma 43>;
-// 	dma-names = "tx", "rx";
-// 	status = "disabled";
-//         ctp@14 {
-//                 compatible = "allwinner,goodix";
-//                 device_type = "ctp";
-//                 reg = <0x14>;
-//                 status = "disabled";
-//                 ctp_name = "gt9xxnew_ts";
-//                 ctp_twi_id = <0x2>;
-//                 ctp_twi_addr = <0x14>;
-//                 ctp_screen_max_x = <0x320>;
-//                 ctp_screen_max_y = <0x1e0>;
-//                 ctp_revert_x_flag = <0x0>;
-//                 ctp_revert_y_flag = <0x0>;
-//                 ctp_exchange_x_y_flag = <0x0>;
-//                 ctp_int_port = <&pio PB 6 GPIO_ACTIVE_HIGH>;
-//                 ctp_wakeup = <&pio PB 7 GPIO_ACTIVE_HIGH>;
-//                 /*ctp-supply = <&reg_aldo2>;*/
-//                 /*ctp_power_ldo = <&reg_aldo2>;*/
-//                 /*ctp_power_ldo_vol = <3300>;*/
-//         };
-// };
+ 
 
 &twi0 {
 	clock-frequency = <400000>;
@@ -670,62 +646,18 @@
 	// dma-names = "tx", "rx";
 	status = "okay";
 
-	axp209: pmic@34 {
-		compatible = "x-powers,axp209";
-		reg = <0x34>;
+	t113boy-pmhid@67 {
+		compatible = "t113boy,pmhid";
+		reg = <0x67>;
 		interrupt-parent = <&pio>;
-		//interrupts = <1 5 IRQ_TYPE_EDGE_FALLING>;
-		interrupts = < PB 5 IRQ_TYPE_EDGE_FALLING>;
-		interrupt-controller;
-		#interrupt-cells = <1>;
+		interrupts = < PE 8 IRQ_TYPE_EDGE_RISING>;
+		pinctrl-0 = <&pmhid_int_pin>;
+        pinctrl-names = "default";
+		status = "okay";
 	};	
 };
 
-#include "axp209.dtsi"
-
-&ac_power_supply {
-	status = "okay";
-};
-
-&axp_gpio {
-	status = "okay";
-};
-
-&battery_power_supply {
-	status = "okay";
-	monitored-battery = <&bat>;
-};
-
-&usb_power_supply {
-	status = "okay";
-};
-
-&reg_dcdc2 {
-	regulator-always-on;
-	regulator-min-microvolt = <1000000>;
-	regulator-max-microvolt = <1400000>;
-	regulator-name = "vdd-cpu-sys-ephy";
-};
-
-&reg_dcdc3 {
-	regulator-always-on;
-	regulator-min-microvolt = <3000000>;
-	regulator-max-microvolt = <3450000>;
-	regulator-name = "vcc-io-ephy-mcsi-usb";
-};
-
-&reg_ldo1 {
-	regulator-min-microvolt = <3000000>;
-	regulator-max-microvolt = <3600000>;
-	regulator-name = "vcc-rtc";
-};
-
-&reg_ldo2 {
-	regulator-always-on;
-	regulator-min-microvolt = <2800000>;
-	regulator-max-microvolt = <3300000>;
-	regulator-name = "avcc-pll";
-};
+ 
 
 // &reg_vcc3v0 {
 // 	regulator-always-on;
@@ -1562,11 +1494,11 @@ VSW
 &usbc0 {
 	device_type = "usbc0";
 	usb_port_type = <0x0>;
-	usb_detect_type = <0x1>;
+	usb_detect_type = <0x2>;
 	usb_detect_mode = <0>;
-	usb_id_gpio = <&pio PE 1 GPIO_ACTIVE_HIGH>;
-	enable-active-high;
-	usb_det_vbus_gpio = <&pio PB 2 GPIO_ACTIVE_HIGH>;
+	//usb_id_gpio = <&pio PE 1 GPIO_ACTIVE_HIGH>;
+	//enable-active-high;
+	//usb_det_vbus_gpio = <&pio PB 2 GPIO_ACTIVE_HIGH>;
 	usb_wakeup_suspend = <0>;
 	usb_serial_unique = <0>;
 	usb_serial_number = "20080411";

@@ -1,0 +1,25 @@
+From 1db17fb51e2d3fa8abd9bea6a47f6b4a397e56f5 Mon Sep 17 00:00:00 2001
+From: Jacky Yuen <jackyyuen10@gmail.com>
+Date: Thu, 19 Mar 2026 18:21:38 +0800
+Subject: [PATCH] menu-btn-11
+
+---
+ funkey/fk_menu.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/funkey/fk_menu.c b/funkey/fk_menu.c
+index 28e355d..140b001 100644
+--- a/funkey/fk_menu.c
++++ b/funkey/fk_menu.c
+@@ -60,7 +60,7 @@
+  #define SCREEN_HORIZONTAL_SIZE      1080 //RES_HW_SCREEN_HORIZONTAL
+  #define SCREEN_VERTICAL_SIZE        1240 //RES_HW_SCREEN_VERTICAL
+  
+- #define SCROLL_SPEED_PX             120
++ #define SCROLL_SPEED_PX             620
+  #define FPS_MENU                    60
+  #define ARROWS_PADDING              8
+  
+-- 
+2.34.1
+
